@@ -28,7 +28,7 @@ def parse_crontab(filename, withuser=True, monotonic=False):
                 period, delay, jobid = parts[0:3]
                 command = parts[3:]
 
-                yield {
+                yield line, {
                         'p': period.lstrip('@'),
                         'd': delay,
                         'j': jobid,
@@ -41,7 +41,7 @@ def parse_crontab(filename, withuser=True, monotonic=False):
                     period = parts[0].lstrip('@')
                     user, command = (parts[1], parts[2:]) if withuser else (basename, parts[1:])
 
-                    yield {
+                    yield line, {
                             'p': period,
                             'u': user,
                             'c': ' '.join(command)
@@ -51,7 +51,7 @@ def parse_crontab(filename, withuser=True, monotonic=False):
                     dows, months = parts[3:5]
                     user, command = (parts[5], parts[6:]) if withuser else (basename, parts[5:])
 
-                    yield {
+                    yield line, {
                             'm': parse_time_unit(minutes, range(0, 60)),
                             'h': parse_time_unit(hours, range(0, 24)),
                             'd': parse_time_unit(days, range(1, 32)),
@@ -100,9 +100,18 @@ def parse_period(mapping=int):
 
     return parser
 
-def generate_timer_unit(job, seq):
+def generate_timer_unit(line, job, seq):
     n = next(seq)
     unit_name = "cron-%s-%s" % (job['u'], n)
+    
+    if 'p' in job:
+        if job['p'] == 'reboot':
+            schedule = 'OnBootSec=5m'
+        else:
+            schedule = 'OnCalendar=%s' % job['p']
+    else:
+        schedule = 'OnCalednar=%s %s-%s %s:%s' % (','.join(job['w']), ','.join(map(str, job['M'])),
+                ','.join(map(str, job['d'])), ','.join(map(str, job['h'])), ','.join(map(str, job['m'])))
 
     with open('%s/%s.timer' % (TARGER_DIR, unit_name), 'w') as f:
         f.write('''[Unit]
@@ -113,11 +122,8 @@ RefuseManualStop=true
 
 [Timer]
 Unit=%s.service
-On%s=%s
-''' % (job['c'], unit_name, 'BootSec' if job.get('p') == 'reboot' else 'Calendar',
-        job.get('p') or '%s %s-%s %s:%s' % (','.join(job['w']), ','.join(map(str, job['M'])),
-                ','.join(map(str, job['d'])), ','.join(map(str, job['h'])), ','.join(map(str, job['m'])))
-                ))
+%s
+''' % (line, unit_name, schedule)
 
     with open('%s/%s.service' % (TARGER_DIR, unit_name), 'w') as f:
         f.write('''[Unit]\n')
@@ -129,7 +135,7 @@ RefuseManualStop=true
 Type=oneshot
 User=%s
 ExecStart=/bin/sh -c "%s"
-''' % (job['c'], job['u'], job['c'])
+''' % (line, job['u'], job['c'])
 
 seqs = {}
 def count():
@@ -140,21 +146,21 @@ def count():
 
 for filename in CRONTAB_FILES:
     try:
-        for job in parse_crontab(filename, withuser=True):
-            generate_timer_unit(job, seqs.setdefault(job['u'], count()))
+        for line, job in parse_crontab(filename, withuser=True):
+            generate_timer_unit(line, job, seqs.setdefault(job['u'], count()))
     except IOError:
         pass
 
 for filename in ANACRONTAB_FILES:
     try:
-        for job in parse_crontab(filename, monotonic=True):
-            generate_timer_unit(job, seqs.setdefault(job['u'], count()))
+        for line, job in parse_crontab(filename, monotonic=True):
+            generate_timer_unit(line, job, seqs.setdefault(job['u'], count()))
     except IOError:
         pass
 
 for filename in USERCRONTAB_FILES:
     try:
-        for job in parse_crontab(filename, withuser=False):
-            generate_timer_unit(job, seqs.setdefault(job['u'], count()))
+        for line, job in parse_crontab(filename, withuser=False):
+            generate_timer_unit(line, job, seqs.setdefault(job['u'], count()))
     except IOError:
         pass
