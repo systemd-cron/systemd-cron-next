@@ -114,7 +114,7 @@ RefuseManualStop=true
 [Timer]
 Unit=%s.service
 On%s=%s
-''' % (unit_name, job['c'], 'BootSec' if job.get('p') == 'reboot' else 'Calendar',
+''' % (job['c'], unit_name, 'BootSec' if job.get('p') == 'reboot' else 'Calendar',
         job.get('p') or '%s %s-%s %s:%s' % (','.join(job['w']), ','.join(map(str, job['M'])),
                 ','.join(map(str, job['d'])), ','.join(map(str, job['h'])), ','.join(map(str, job['m'])))
                 ))
