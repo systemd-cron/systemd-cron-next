@@ -127,7 +127,7 @@ def generate_timer_unit(job, seq):
         f.write('User=%s\n' % job['u'])
         f.write('ExecStart=%s\n' % job['c'])
         f.write('[Install]\n')
-        f.write('WantedBy=basic.target')
+        f.write('WantedBy=crontab.target')
 
 seqs = {}
 def count():
