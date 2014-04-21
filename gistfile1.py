@@ -123,7 +123,7 @@ RefuseManualStop=true
 [Timer]
 Unit=%s.service
 %s
-''' % (line, unit_name, schedule)
+''' % (line, unit_name, schedule))
 
     with open('%s/%s.service' % (TARGER_DIR, unit_name), 'w') as f:
         f.write('''[Unit]\n')
@@ -135,7 +135,7 @@ RefuseManualStop=true
 Type=oneshot
 User=%s
 ExecStart=/bin/sh -c "%s"
-''' % (line, job['u'], job['c'])
+''' % (line, job['u'], job['c']))
 
 seqs = {}
 def count():
