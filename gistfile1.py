@@ -32,14 +32,19 @@ def parse_crontab(filename, withuser=True, monotonic=False):
                         'p': period.lstrip('@'),
                         'd': delay,
                         'j': jobid,
-                        'c': ' '.join(command)
+                        'c': ' '.join(command),
+                        'u': 'root'
                         }
 
             else:
                 if line.startswith('@'):
+                    period = parts[0].lstrip('@')
+                    user, command = (parts[1], parts[2:]) if withuser else (basename, parts[1:])
+
                     yield {
-                            'p': parts[0].lstrip('@'),
-                            'c': ' '.join(parts[1:])
+                            'p': period,
+                            'u': user,
+                            'c': ' '.join(command)
                             }
                 else:
                     minutes, hours, days = parts[0:3]
@@ -60,7 +65,7 @@ def parse_time_unit(value, values, mapping=int):
     if value == '*':
         return ['*']
     return list(reduce(lambda a, i: a + set(i), map(values.__getitem__,
-            map(parse_period(mapping), value.split(',')))))
+        map(parse_period(mapping), value.split(',')))))
 
 def month_map(month):
     month = month.lower()
@@ -80,7 +85,8 @@ def parse_period(mapping=int):
         try:
             range, step = value.split('/')
         except ValueError:
-            return mapping(value)
+            value = mapping(value)
+            return slice(value, value + 1)
 
         if range == '*':
             return slice(None, None, int(step))
@@ -94,22 +100,59 @@ def parse_period(mapping=int):
 
     return parser
 
-#for filename in CRONTAB_FILES:
-    #for job in parse_crontab(filename, withuser=True):
-        #pass
+def generate_timer_unit(job, seq):
+    n = next(seq)
+    unit_name = "%s-%s" % (job['u'], n)
 
-#for filename in ANACRONTAB_FILES:
-    #for job in parse_crontab(filename, monotonic=True):
-        #pass
+    with open('%s/%s.timer' % (TARGER_DIR, unit_name), 'w') as f:
+        f.write('[Unit]\n')
+        f.write('Description=Crontab entry for "%s"\n' % job['c'])
 
-for filename in USERCRONTAB_FILES:
-    for job in parse_crontab(filename, withuser=False):
+        f.write('[Timer]\n')
         if 'p' in job:
             if job['p'] == 'reboot':
-                print 'OnBootSec=5'
+                f.write('OnBootSec=5\n')
             else:
-                print 'OnCalendar=%s' % job['p']
+                f.write('OnCalendar=%s\n' % job['p'])
 
         else:
-            print 'OnCalendar=%s %s-%s %s:%s' % (','.join(job['w']), ','.join(map(str, job['M'])),
-                ','.join(map(str, job['d'])), ','.join(map(str, job['h'])), ','.join(map(str, job['m'])))
+            f.write('OnCalendar=%s %s-%s %s:%s\n' % (','.join(job['w']), ','.join(map(str, job['M'])),
+                ','.join(map(str, job['d'])), ','.join(map(str, job['h'])), ','.join(map(str, job['m']))))
+
+    with open('%s/%s.service' % (TARGER_DIR, unit_name), 'w') as f:
+        f.write('[Unit]\n')
+        f.write('Description=Crontab command "%s"\n' % job['c'])
+        f.write('[Service]\n')
+        f.write('Type=oneshot\n')
+        f.write('User=%s\n' % job['u'])
+        f.write('ExecStart=%s\n' % job['c'])
+        f.write('[Install]\n')
+        f.write('WantedBy=basic.target')
+
+seqs = {}
+def count():
+    n = 0
+    while True:
+        yield n
+        n += 1
+
+for filename in CRONTAB_FILES:
+    try:
+        for job in parse_crontab(filename, withuser=True):
+            generate_timer_unit(job, seqs.setdefault(job['u'], count()))
+    except IOError:
+        pass
+
+for filename in ANACRONTAB_FILES:
+    try:
+        for n, job in enumerate(parse_crontab(filename, monotonic=True)):
+            generate_timer_unit(job, seqs.setdefault(job['u'], count()))
+    except IOError:
+        pass
+
+for filename in USERCRONTAB_FILES:
+    try:
+        for n, job in enumerate(parse_crontab(filename, withuser=False)):
+            generate_timer_unit(job, seqs.setdefault(job['u'], count()))
+    except IOError:
+        pass
