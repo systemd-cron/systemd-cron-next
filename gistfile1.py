@@ -145,14 +145,14 @@ for filename in CRONTAB_FILES:
 
 for filename in ANACRONTAB_FILES:
     try:
-        for n, job in enumerate(parse_crontab(filename, monotonic=True)):
+        for job in parse_crontab(filename, monotonic=True):
             generate_timer_unit(job, seqs.setdefault(job['u'], count()))
     except IOError:
         pass
 
 for filename in USERCRONTAB_FILES:
     try:
-        for n, job in enumerate(parse_crontab(filename, withuser=False)):
+        for job in parse_crontab(filename, withuser=False):
             generate_timer_unit(job, seqs.setdefault(job['u'], count()))
     except IOError:
         pass
