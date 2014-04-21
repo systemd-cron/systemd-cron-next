@@ -102,16 +102,20 @@ def parse_period(mapping=int):
 
 def generate_timer_unit(job, seq):
     n = next(seq)
-    unit_name = "%s-%s" % (job['u'], n)
+    unit_name = "cron-%s-%s" % (job['u'], n)
 
     with open('%s/%s.timer' % (TARGER_DIR, unit_name), 'w') as f:
         f.write('[Unit]\n')
         f.write('Description=Crontab entry for "%s"\n' % job['c'])
+        f.write('RefuseManualStart=true\n')
+        f.write('RefuseManualStop=true\n')
 
         f.write('[Timer]\n')
+        f.write('Unit=%s.service' % unit_name)
+
         if 'p' in job:
             if job['p'] == 'reboot':
-                f.write('OnBootSec=5\n')
+                f.write('OnBootSec=5m\n')
             else:
                 f.write('OnCalendar=%s\n' % job['p'])
 
@@ -119,13 +123,17 @@ def generate_timer_unit(job, seq):
             f.write('OnCalendar=%s %s-%s %s:%s\n' % (','.join(job['w']), ','.join(map(str, job['M'])),
                 ','.join(map(str, job['d'])), ','.join(map(str, job['h'])), ','.join(map(str, job['m']))))
 
+
+
     with open('%s/%s.service' % (TARGER_DIR, unit_name), 'w') as f:
         f.write('[Unit]\n')
         f.write('Description=Crontab command "%s"\n' % job['c'])
+        f.write('RefuseManualStart=true\n')
+        f.write('RefuseManualStop=true\n')
         f.write('[Service]\n')
         f.write('Type=oneshot\n')
         f.write('User=%s\n' % job['u'])
-        f.write('ExecStart=%s\n' % job['c'])
+        f.write('ExecStart=/bin/sh -c "%s"\n' % job['c'])
         f.write('[Install]\n')
         f.write('WantedBy=crontab.target')
 
