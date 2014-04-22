@@ -144,6 +144,7 @@ RefuseManualStop=true
 
 [Timer]
 Unit=%s.service
+Persistent=true
 AccuracySec=1m
 %s
 ''' % (SELF, job['l'], unit_name, schedule))
