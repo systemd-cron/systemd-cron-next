@@ -30,6 +30,7 @@ def parse_crontab(filename, withuser=True, monotonic=False):
             envvar = envvar_re.match(line)
             if envvar:
                 environment[envvar.group(1)] = envvar.group(2)
+                continue
 
             if not line or '=' in line:
                 continue
