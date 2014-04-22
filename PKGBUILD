@@ -11,7 +11,7 @@ replaces=('cron' 'anacron')
 source=(systemd-crontab-generator
         systemd-crontab-update)
 md5sum=('78fa326662d0169fc0666b25afc39290'
-        '360d3c0938abf9eeda62f3298af90f89')
+        'dbff9858b17a171a11c146545c4862da')
 
 build() {
 }
