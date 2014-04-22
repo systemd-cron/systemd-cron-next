@@ -80,7 +80,7 @@ def parse_crontab(filename, withuser=True, monotonic=False):
                             'c': ' '.join(command)
                             }
                 else:
-                    if len(parts) < 5:
+                    if len(parts) < 5 + int(withuser):
                         continue
 
                     minutes, hours, days = parts[0:3]
