@@ -137,7 +137,7 @@ def generate_timer_unit(job, seq):
     
     if 'p' in job:
         if job['p'] == 'reboot':
-            schedule = 'OnBootSec=5m'
+            schedule = 'OnBootSec=%sm' % job.get('d', 5)
         else:
             try:
                 schedule = 'OnCalendar=*-*-1/%s 0:%s:0' % (int(job['p']), job.get('d', 0))
