@@ -10,10 +10,11 @@ provides=('cron' 'anacron')
 replaces=('cron' 'anacron')
 source=(systemd-crontab-generator
         systemd-crontab-update)
-md5sum=('78fa326662d0169fc0666b25afc39290'
-        'dbff9858b17a171a11c146545c4862da')
+md5sums=('78fa326662d0169fc0666b25afc39290'
+         'dbff9858b17a171a11c146545c4862da')
 
 build() {
+    cd "${srcdir}/${pkgname}-${pkgver}"
 }
 
 package() {
