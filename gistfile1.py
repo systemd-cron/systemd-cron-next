@@ -32,12 +32,12 @@ def parse_crontab(filename, withuser=True, monotonic=False):
                 environment[envvar.group(1)] = envvar.group(2)
                 continue
 
-            if not line or '=' in line:
-                continue
-
             parts = line.split()
 
             if monotonic:
+                if len(parts) < 4:
+                    continue
+
                 period, delay, jobid = parts[0:3]
                 command = parts[3:]
                 period = {
@@ -59,6 +59,9 @@ def parse_crontab(filename, withuser=True, monotonic=False):
 
             else:
                 if line.startswith('@'):
+                    if len(parts) < 2:
+                        continue
+
                     period = parts[0]
                     period = {
                             '1': 'daily',
@@ -77,6 +80,9 @@ def parse_crontab(filename, withuser=True, monotonic=False):
                             'c': ' '.join(command)
                             }
                 else:
+                    if len(parts) < 5:
+                        continue
+
                     minutes, hours, days = parts[0:3]
                     months, dows = parts[3:5]
                     user, command = (parts[5], parts[6:]) if withuser else (basename, parts[5:])
