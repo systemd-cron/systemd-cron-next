@@ -200,22 +200,22 @@ requirements = []
 
 for filename in CRONTAB_FILES:
     try:
-        for job in parse_crontab(filename, withuser=True):
-            requirements.append(generate_timer_unit(job, seqs.setdefault(job['u'], count())))
+        requirements.extend(generate_timer_unit(job, seqs.setdefault(job['u'], count()))
+            for job in parse_crontab(filename, withuser=True))
     except IOError:
         pass
 
 for filename in ANACRONTAB_FILES:
     try:
-        for job in parse_crontab(filename, monotonic=True):
-            requirements.append(generate_timer_unit(job, seqs.setdefault(job['u'], count())))
+        requirements.extend(generate_timer_unit(job, seqs.setdefault(job['u'], count()))
+            for job in parse_crontab(filename, monotonic=True))
     except IOError:
         pass
 
 for filename in USERCRONTAB_FILES:
     try:
-        for job in parse_crontab(filename, withuser=False):
-            requirements.append(generate_timer_unit(job, seqs.setdefault(job['u'], count())))
+        requirements.extend(generate_timer_unit(job, seqs.setdefault(job['u'], count()))
+            for job in parse_crontab(filename, withuser=False))
     except IOError:
         pass
 
