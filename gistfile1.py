@@ -1,24 +1,36 @@
 #!/usr/bin/python2
 import sys
 import os
+import re
 
 def files(dirname):
-    return filter(os.path.isfile, map(lambda f: os.path.join(dirname, f), os.listdir(dirname)))
+    try:
+        return filter(os.path.isfile, map(lambda f: os.path.join(dirname, f), os.listdir(dirname)))
+    except OSError:
+        return []
+
+envvar_re = re.compile(r'^([A-Za-z_0-9]+)\s*=\s*(.*)$')
 
 CRONTAB_FILES = ['/etc/crontab'] + files('/etc/cron.d')
 ANACRONTAB_FILES = ['/etc/anacrontab']
 USERCRONTAB_FILES = files('/var/spool/cron')
 
 TARGER_DIR = sys.argv[1]
+SELF = os.path.basename(sys.argv[0])
 
 def parse_crontab(filename, withuser=True, monotonic=False):
     basename = os.path.basename(filename)
+    environment = {}
     with open(filename, 'r') as f:
         for line in f.readlines():
             if line.startswith('#'):
                 continue
 
-            line = line.strip()
+            line = line.rstrip('\n')
+            envvar = envvar_re.match(line)
+            if envvar:
+                environment[envvar.group(1)] = envvar.group(2)
+
             if not line or '=' in line:
                 continue
 
@@ -28,7 +40,9 @@ def parse_crontab(filename, withuser=True, monotonic=False):
                 period, delay, jobid = parts[0:3]
                 command = parts[3:]
 
-                yield line, {
+                yield {
+                        'e': ' '.join('"%s=%s"' % kv for kv in environment.iteritems()),
+                        'l': line,
                         'p': period.lstrip('@'),
                         'd': delay,
                         'j': jobid,
@@ -41,22 +55,26 @@ def parse_crontab(filename, withuser=True, monotonic=False):
                     period = parts[0].lstrip('@')
                     user, command = (parts[1], parts[2:]) if withuser else (basename, parts[1:])
 
-                    yield line, {
+                    yield {
+                            'e': ' '.join('"%s=%s"' % kv for kv in environment.iteritems()),
+                            'l': line,
                             'p': period,
                             'u': user,
                             'c': ' '.join(command)
                             }
                 else:
                     minutes, hours, days = parts[0:3]
-                    dows, months = parts[3:5]
+                    months, dows = parts[3:5]
                     user, command = (parts[5], parts[6:]) if withuser else (basename, parts[5:])
 
-                    yield line, {
+                    yield {
+                            'e': ' '.join('"%s=%s"' % kv for kv in environment.iteritems()),
+                            'l': line,
                             'm': parse_time_unit(minutes, range(0, 60)),
                             'h': parse_time_unit(hours, range(0, 24)),
-                            'd': parse_time_unit(days, range(1, 32)),
+                            'd': parse_time_unit(days, range(0, 32)),
                             'w': parse_time_unit(dows, ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], dow_map),
-                            'M': parse_time_unit(months, range(1, 13), month_map),
+                            'M': parse_time_unit(months, range(0, 13), month_map),
                             'u': user,
                             'c': ' '.join(command)
                             }
@@ -64,21 +82,20 @@ def parse_crontab(filename, withuser=True, monotonic=False):
 def parse_time_unit(value, values, mapping=int):
     if value == '*':
         return ['*']
-    return list(reduce(lambda a, i: a + set(i), map(values.__getitem__,
-        map(parse_period(mapping), value.split(',')))))
+    return list(reduce(lambda a, i: a.union(set(i)), map(values.__getitem__,
+        map(parse_period(mapping), value.split(','))), set()))
 
 def month_map(month):
-    month = month.lower()
     try:
-        return ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'nov', 'dec'].index(month.lower()[0:3]) + 1
-    except ValueError:
         return int(month)
+    except ValueError:
+        return ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'nov', 'dec'].index(month.lower()[0:3]) + 1
 
 def dow_map(dow):
     try:
-        return ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][int(dow) % 7]
-    except ValueError as e:
-        return dow[0:3].lower()
+        return ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].index(dow[0:3].lower())
+    except ValueError:
+        return int(dow) % 7
 
 def parse_period(mapping=int):
     def parser(value):
@@ -100,7 +117,7 @@ def parse_period(mapping=int):
 
     return parser
 
-def generate_timer_unit(line, job, seq):
+def generate_timer_unit(job, seq):
     n = next(seq)
     unit_name = "cron-%s-%s" % (job['u'], n)
     
@@ -110,11 +127,14 @@ def generate_timer_unit(line, job, seq):
         else:
             schedule = 'OnCalendar=%s' % job['p']
     else:
-        schedule = 'OnCalednar=%s %s-%s %s:%s' % (','.join(job['w']), ','.join(map(str, job['M'])),
+        dows = ','.join(job['w'])
+        dows = '' if dows == '*' else dows + ' '
+
+        schedule = 'OnCalendar=%s*-%s-%s %s:%s:00' % (dows, ','.join(map(str, job['M'])),
                 ','.join(map(str, job['d'])), ','.join(map(str, job['h'])), ','.join(map(str, job['m'])))
 
     with open('%s/%s.timer' % (TARGER_DIR, unit_name), 'w') as f:
-        f.write('''# Automatically generated by systemd-crontab-generator
+        f.write('''# Automatically generated by %s
 
 [Unit]
 Description=[Cron] "%s"
@@ -124,11 +144,12 @@ RefuseManualStop=true
 
 [Timer]
 Unit=%s.service
+AccuracySec=1m
 %s
-''' % (line, unit_name, schedule))
+''' % (SELF, job['l'], unit_name, schedule))
 
     with open('%s/%s.service' % (TARGER_DIR, unit_name), 'w') as f:
-        f.write('''# Automatically generated by systemd-crontab-generator
+        f.write('''# Automatically generated by %s
 
 [Unit]
 Description=[Cron] "%s"
@@ -138,8 +159,11 @@ RefuseManualStop=true
 [Service]
 Type=oneshot
 User=%s
-ExecStart=/bin/sh -c "%s"
-''' % (line, job['u'], job['c']))
+Environment=%s
+ExecStart=/bin/sh -c '%s'
+''' % (SELF, job['l'], job['u'], job['e'], job['c']))
+
+    return '%s.timer' % unit_name
 
 seqs = {}
 def count():
@@ -148,23 +172,36 @@ def count():
         yield n
         n += 1
 
+requirements = []
+
 for filename in CRONTAB_FILES:
     try:
-        for line, job in parse_crontab(filename, withuser=True):
-            generate_timer_unit(line, job, seqs.setdefault(job['u'], count()))
+        for job in parse_crontab(filename, withuser=True):
+            requirements.append(generate_timer_unit(job, seqs.setdefault(job['u'], count())))
     except IOError:
         pass
 
-for filename in ANACRONTAB_FILES:
-    try:
-        for line, job in parse_crontab(filename, monotonic=True):
-            generate_timer_unit(line, job, seqs.setdefault(job['u'], count()))
-    except IOError:
-        pass
+#for filename in ANACRONTAB_FILES:
+    #try:
+        #for job in parse_crontab(filename, monotonic=True):
+            #requirements.append(generate_timer_unit(job, seqs.setdefault(job['u'], count())))
+    #except IOError:
+        #pass
 
 for filename in USERCRONTAB_FILES:
     try:
-        for line, job in parse_crontab(filename, withuser=False):
-            generate_timer_unit(line, job, seqs.setdefault(job['u'], count()))
+        for job in parse_crontab(filename, withuser=False):
+            requirements.append(generate_timer_unit(job, seqs.setdefault(job['u'], count())))
     except IOError:
         pass
+
+with open('%s/cron.target' % (TARGER_DIR), 'w') as f:
+    f.write('''# Automatically generated by %s
+
+[Unit]
+Description=Cron Jobs
+Requires=%s
+
+[Install]
+WantedBy=multi-user.target
+''' % (SELF, ' '.join(requirements)))
