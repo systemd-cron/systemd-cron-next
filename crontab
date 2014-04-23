@@ -36,10 +36,10 @@ args_parser.add_argument('-i', '--ask', dest='ask', action='store_true', default
         help='''This option modifies the -r option to prompt the user for a
  'y/Y' response before actually removing the crontab.''')
 
-args_parser.add_argument('-s', '--secure', dest='secure', action='store_true', default=False,
-        help='''It will append the current SELinux security context string as an
- MLS_LEVEL setting to the crontab file before editing / replace-
- ment occurs - see the documentation of MLS_LEVEL in crontab(5).''')
+#args_parser.add_argument('-s', '--secure', dest='secure', action='store_true', default=False,
+        #help='''It will append the current SELinux security context string as an
+ #MLS_LEVEL setting to the crontab file before editing / replacement occurs
+ #- see the documentation of MLS_LEVEL in crontab(5).''')
 
 def update():
     os.system('/usr/bin/systemd-crontab-update')
