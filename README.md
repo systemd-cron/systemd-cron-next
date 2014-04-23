@@ -52,9 +52,10 @@ execute commands from `package()` sub.
 The generator runs on system boot. If you change your crontabs in runtime, run `systemd-crontab-update`
 script as root (`sudo systemd-crontab-update`) to regenerate systemd units and reload them.
 
-The project doesn't include `crontab` command equivalent, so you will have to view/edit your crontab files
-manually, just don't forget to run `systemd-crontab-update` after you edit them! Maybe I'll add `crontab`
-script in the future, though I can't promise.
+The project includes simple `crontab` command equivalent, which behaves like standard crontab command
+(and accepts the same main options), and runs `systemd-crontab-update` command after user crontab file
+update. Note, though, the systemd-crontab-update requires superuser priviledges, so `crontab` will fail
+if you don't run it as a supersuser. This is known bug and I'll address it in near future.
 
 To control cron jobs, use `cron.target`, e.g. to start and enable cron after installation:
 
