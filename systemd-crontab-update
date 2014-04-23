@@ -2,7 +2,7 @@
 
 GENERATOR_DIR=/run/systemd/generator
 
-rm -f $GENERATOR_DIR/cron.target.wants
+rm -f -r $GENERATOR_DIR/cron.target.wants
 rm -f $GENERATOR_DIR/cron-*.service
 rm -f $GENERATOR_DIR/cron-*.timer
 /usr/lib/systemd/system-generators/systemd-crontab-generator $GENERATOR_DIR
