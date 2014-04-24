@@ -40,6 +40,7 @@ def parse_crontab(filename, withuser=True, monotonic=False):
                 continue
 
             parts = line.split()
+            line = ' '.join(parts)
 
             if monotonic:
                 if len(parts) < 4:
