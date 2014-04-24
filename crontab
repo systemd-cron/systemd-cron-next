@@ -42,7 +42,8 @@ args_parser.add_argument('-i', '--ask', dest='ask', action='store_true', default
  #- see the documentation of MLS_LEVEL in crontab(5).''')
 
 def update():
-    os.system('/usr/bin/sudo /usr/bin/systemd-crontab-update')
+    sudo = '' if os.getuid() == 0 else '/usr/bin/sudo '
+    os.system('%s/usr/bin/systemd-crontab-update' % sudo)
 
 def confirm(message):
     while True:
