@@ -54,8 +54,9 @@ script as root (`sudo systemd-crontab-update`) to regenerate systemd units and r
 
 The project includes simple `crontab` command equivalent, which behaves like standard crontab command
 (and accepts the same main options), and runs `systemd-crontab-update` command after user crontab file
-update. Note, though, the systemd-crontab-update requires superuser priviledges, so `crontab` will fail
-if you don't run it as a supersuser. This is known bug and I'll address it in near future.
+update. Note, though, the systemd-crontab-update requires superuser priviledges, so `crontab` tries
+to run it under `sudo`, so if you are not allowed to run `systemd-crontab-update` via `/etc/sudoers`
+file, you can't update crontab timers.
 
 To control cron jobs, use `cron.target`, e.g. to start and enable cron after installation:
 
