@@ -1,6 +1,6 @@
 # Maintainer: Konstantin Stepanov <me@kstep.me>
 pkgname=systemd-crontab-generator
-pkgver=0.4
+pkgver=0.5
 pkgrel=1
 pkgdesc="systemd generator to generate timers/services from crontab and anacrontab files"
 url="https://github.com/kstep/systemd-crontab-generator"
@@ -13,10 +13,10 @@ source=(systemd-crontab-generator
         systemd-crontab-update
         cron.target
         crontab)
-md5sums=('3bd87778cb646470108826e9933f48fd'
+md5sums=('a3ef4560159c5f153e6eed6b72f4df26'
          '054206bd63854dd6b27890c855a34ce8'
          '97450f27b69a1e88f1b21faad403df7c'
-         'a6acfeaae92832bf123b4059744eb0f1')
+         'cbda4f9509494bd621b89a537e86b248')
 
 build() {
     echo
