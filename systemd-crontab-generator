@@ -105,7 +105,7 @@ def parse_crontab(filename, withuser=True, monotonic=False):
                             'e': ' '.join('"%s=%s"' % kv for kv in environment.iteritems()),
                             'l': line,
                             'f': filename,
-                            'm': parse_time_unit(minutes, MIUNTES_SET),
+                            'm': parse_time_unit(minutes, MINUTES_SET),
                             'h': parse_time_unit(hours, HOURS_SET),
                             'd': parse_time_unit(days, DAYS_SET),
                             'w': parse_time_unit(dows, DOWS_SET, dow_map),
