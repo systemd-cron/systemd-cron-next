@@ -50,6 +50,7 @@ def confirm(message):
         answer = raw_input(message).lower()
         if answer not in 'yn':
             print('Please reply "y" or "n"')
+            continue
 
         return answer == 'y'
 
