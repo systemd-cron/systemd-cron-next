@@ -65,8 +65,11 @@ To control cron jobs, use `cron.target`, e.g. to start and enable cron after ins
 
 ## Disclaimer
 
-This is not a production-ready project! Use at your own risk! I'm not responsible for any data losses,
-time losses, money losses or any other failures due to usage of this project! You were warned!
+This is a beta product! Use at your own risk! I'm not responsible for any data losses,
+time losses, money losses or any other failures due to usage or misusage of this project!
+I've run this product on my local server for several months without issues, but it does not
+mean you will have no issues as well! Don't blame me for any crashes because of the product!
+You were warned!
 
 ## License
 
