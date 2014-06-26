@@ -9,11 +9,14 @@ crontab [-u user] file
 crontab [-u user] [-l | -r | -e] [-i]
 
 .SH DESCRIPTION
-Crontab	is the program used to install, deinstall or list the tables used to drive
-systemd-cron, replacing the legacy cron daemon.
+Crontab is the program used to lest users install, deinstall or list 
+recurrent jobs in the legacy cron format.
 .br
-Each user can have their own crontab, and though these are files in /var/spool/ ,
+Each user can have their own crontab, and though these are files in /var/spool/,
 they are not intended to be edited directly.
+.br
+These jobs are then automaticaly translated in systemd Timers & Units
+by systemd-crontab-generator.
 
 .SH FILES
 .TP
@@ -22,7 +25,8 @@ Directory for users crontabs.
 
 .SH LIMITATIONS
 The -s flag (SELinux) is not supported.
-/etc/cron.allow & /etc/cron.deny ar not supported.
+.br
+/etc/cron.allow & /etc/cron.deny are not supported.
 
 .SH AUTHOR
 Alexandre Detiste <alexandre@detiste.be>
