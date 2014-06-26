@@ -5,11 +5,13 @@ crontab - maintain crontab files for individual users
 
 .SH SYNOPSIS
 crontab [-u user] file
+.br
 crontab [-u user] [-l | -r | -e] [-i]
 
 .SH DESCRIPTION
 Crontab	is the program used to install, deinstall or list the tables used to drive
 systemd-cron, replacing the legacy cron daemon.
+.br
 Each user can have their own crontab, and though these are files in /var/spool/ ,
 they are not intended to be edited directly.
 
