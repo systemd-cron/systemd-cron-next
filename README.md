@@ -85,4 +85,8 @@ Also check out [comments][] in AUR for current news about Arch package status.
 [pulls]: https://github.com/kstep/systemd-crontab-generator/pulls
 [comments]: https://aur.archlinux.org/packages/systemd-crontab-generator/?comments=all
 
+## Copyright
+
+© 2014, Konstantin Stepanov (<me@kstep.me>)
+
 [![CC-BY](https://i.creativecommons.org/l/by/4.0/80x15.png "CC-BY")](http://creativecommons.org/licenses/by/4.0/)
