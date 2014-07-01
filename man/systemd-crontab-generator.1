@@ -8,12 +8,17 @@ systemd-crontab-generator folder
 
 .SH DESCRIPTION
 systemd-crontab-generator translates the legacy cron files (see FILES)
-into systemd Units & Timers.
+into systemd units & timers.
 .PP
-It should be run at boot
-.br
-and also after each manual updates to the cron files,
-.br
+It should be run 
+.TP
+*
+at boot,
+.TP
+*
+after each manual updates to the cron files,
+.TP
+*
 and when distribution packages add files in /etc/cron.d/.
 .PP
 \fBsystemd-crontab-update\fR is a sample script that
