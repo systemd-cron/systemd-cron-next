@@ -24,6 +24,8 @@ build() {
 
 package() {
     install --mode=0755 -D systemd-crontab-generator ${pkgdir}/usr/lib/systemd/system-generators/systemd-crontab-generator
+    install --mode=0644 -D man/systemd-crontab-generator.1 ${pkgdir}/usr/share/man/man1/systemd-crontab-generator.1
+    gzip {$pkgdir}/usr/share/man/man1/systemd-crontab-generator.1
     install --mode=0755 -D systemd-crontab-update ${pkgdir}/usr/bin/systemd-crontab-update
     install --mode=0644 -D cron.target ${pkgdir}/usr/lib/systemd/system/cron.target
     install --mode=0755 -D crontab ${pkgdir}/usr/bin/crontab
