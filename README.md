@@ -73,7 +73,7 @@ You were warned!
 
 ## License
 
-The project is licensed under [GPLv3](https://www.gnu.org/copyleft/gpl.html).
+The project is licensed under [CC-BY](http://creativecommons.org/licenses/by/4.0/).
 Don't forget to attribute if you derive from my work!
 
 ## Contribution
@@ -84,3 +84,5 @@ Also check out [comments][] in AUR for current news about Arch package status.
 [issues]: https://github.com/kstep/systemd-crontab-generator/issues
 [pulls]: https://github.com/kstep/systemd-crontab-generator/pulls
 [comments]: https://aur.archlinux.org/packages/systemd-crontab-generator/?comments=all
+
+[![CC-BY](https://i.creativecommons.org/l/by/4.0/80x15.png "CC-BY")](http://creativecommons.org/licenses/by/4.0/)
