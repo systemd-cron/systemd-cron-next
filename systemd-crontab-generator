@@ -33,7 +33,10 @@ except OSError as e:
 
 def parse_crontab(filename, withuser=True, monotonic=False):
     basename = os.path.basename(filename)
-    environment = {}
+    environment = {
+        'SHELL': '/bin/sh',
+        'PATH': '/usr/bin:/bin',
+        }
     with open(filename, 'r') as f:
         for line in f.readlines():
             if line.startswith('#'):
@@ -57,7 +60,7 @@ def parse_crontab(filename, withuser=True, monotonic=False):
                 period = {
                         '1': 'daily',
                         '7': 'weekly',
-                        '@annually': 'yearly'
+                        '@midnight': 'daily'
                         }.get(period, None) or period.lstrip('@')
 
                 yield {
@@ -80,7 +83,7 @@ def parse_crontab(filename, withuser=True, monotonic=False):
                     period = {
                             '1': 'daily',
                             '7': 'weekly',
-                            '@annually': 'yearly'
+                            '@midnight': 'daily'
                             }.get(period, None) or period.lstrip('@')
 
                     user, command = (parts[1], ' '.join(parts[2:])) if withuser else (basename, ' '.join(parts[1:]))
@@ -211,8 +214,8 @@ RefuseManualStop=true
 Type=oneshot
 User=%s
 Environment=%s
-ExecStart=/bin/sh -c '%s'
-''' % (SELF, job['f'], job['l'], job['u'], job['e'], job['c']))
+ExecStart=%s -c '%s'
+''' % (SELF, job['f'], job['l'], job['u'], job['e'], job['e'].get('SHELL', '/bin/sh'), job['c']))
 
     return '%s.timer' % unit_name
 
