@@ -33,7 +33,10 @@ except OSError as e:
 
 def parse_crontab(filename, withuser=True, monotonic=False):
     basename = os.path.basename(filename)
-    environment = {}
+    environment = {
+        'SHELL': '/bin/sh',
+        'PATH': '/usr/bin:/bin',
+        }
     with open(filename, 'r') as f:
         for line in f.readlines():
             if line.startswith('#'):
@@ -211,8 +214,8 @@ RefuseManualStop=true
 Type=oneshot
 User=%s
 Environment=%s
-ExecStart=/bin/sh -c '%s'
-''' % (SELF, job['f'], job['l'], job['u'], job['e'], job['c']))
+ExecStart=%s -c '%s'
+''' % (SELF, job['f'], job['l'], job['u'], job['e'], job['e'].get('SHELL', '/bin/sh'), job['c']))
 
     return '%s.timer' % unit_name
 
