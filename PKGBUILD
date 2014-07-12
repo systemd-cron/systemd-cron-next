@@ -31,4 +31,6 @@ package() {
     install --mode=0755 -D crontab ${pkgdir}/usr/bin/crontab
     install --mode=0644 -D man/crontab.1 ${pkgdir}/usr/share/man/man1/crontab.1
     gzip {$pkgdir}/usr/share/man/man1/crontab.1
+    install --mode=0644 -D man/crontab.5 ${pkgdir}/usr/share/man/man5/crontab.5
+    gzip {$pkgdir}/usr/share/man/man5/crontab.5
 }
