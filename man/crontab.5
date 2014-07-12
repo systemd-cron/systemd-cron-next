@@ -93,41 +93,43 @@ LOGNAME is the user that the job is running from, and may not be changed.
 (Another note: the LOGNAME variable is sometimes called USER on BSD systems...
 on these systems, USER will be set also.)
 .PP
-In addition to LOGNAME, HOME, and SHELL,
-.IR cron (8)
-will look at MAILTO if it has any reason to send mail as a result of running
-commands in ``this'' crontab.  If MAILTO is defined (and non-empty), mail is
-sent to the user so named.  MAILTO may also be used to direct mail to multiple
-recipients by separating recipient users with a comma. If MAILTO is defined
-but empty (MAILTO=""), no mail will be sent.  Otherwise mail is sent to the
-owner of the crontab.
-.PP
-./On the Debian GNU/Linux system, cron supports the
-./.B pam_env
-./module, and loads the environment specified by 
-./.IR /etc/environment
-./and
-./.IR /etc/security/pam_env.conf .
-./It also reads locale information from
-./.IR /etc/default/locale .
-./However, the PAM settings do
-./.B NOT
-./override the settings described above nor any settings in the 
-./.I crontab
-./file itself. Note in particular that if you want a PATH other than
-./"/usr/bin:/bin", you will need to set it in the crontab file.
-./.PP
-By default, cron will send mail using the mail "Content-Type:" header of
-"text/plain" with the "charset=" parameter set to the charmap / codeset of the
-locale in which
-.IR crond (8)
-is started up - ie. either the default system locale, if no LC_* environment
-variables are set, or the locale specified by the LC_* environment variables 
-( see
-.IR locale (7) ).
-You can use different character encodings for mailed cron job output by
-setting the CONTENT_TYPE and CONTENT_TRANSFER_ENCODING variables in crontabs,
-to the correct values of the mail headers of those names.
+systemd-crontab-generator doesn't set the MAILTO variable nor send
+any mails like vixie-cron. The output of jobs is written in the journal.
+.\"In addition to LOGNAME, HOME, and SHELL,
+.\".IR cron (8)
+.\"will look at MAILTO if it has any reason to send mail as a result of running
+.\"commands in ``this'' crontab.  If MAILTO is defined (and non-empty), mail is
+.\"sent to the user so named.  MAILTO may also be used to direct mail to multiple
+.\"recipients by separating recipient users with a comma. If MAILTO is defined
+.\"but empty (MAILTO=""), no mail will be sent.  Otherwise mail is sent to the
+.\"owner of the crontab.
+.\".PP
+.\"On the Debian GNU/Linux system, cron supports the
+.\".B pam_env
+.\"module, and loads the environment specified by 
+.\".IR /etc/environment
+.\"and
+.\".IR /etc/security/pam_env.conf .
+.\"It also reads locale information from
+.\".IR /etc/default/locale .
+.\"However, the PAM settings do
+.\".B NOT
+.\"override the settings described above nor any settings in the 
+.\".I crontab
+.\"file itself. Note in particular that if you want a PATH other than
+.\" "/usr/bin:/bin", you will need to set it in the crontab file.
+.\".PP
+.\"By default, cron will send mail using the mail "Content-Type:" header of
+.\" "text/plain" with the "charset=" parameter set to the charmap / codeset of the
+.\"locale in which
+.\".IR crond (8)
+.\"is started up - ie. either the default system locale, if no LC_* environment
+.\"variables are set, or the locale specified by the LC_* environment variables 
+.\"( see
+.\".IR locale (7) ).
+.\"You can use different character encodings for mailed cron job output by
+.\"setting the CONTENT_TYPE and CONTENT_TRANSFER_ENCODING variables in crontabs,
+.\"to the correct values of the mail headers of those names.
 .PP
 The format of a cron command is very much the V7 standard, with a number of
 upward-compatible extensions.  Each line has five time and date fields,
@@ -188,14 +190,18 @@ lists of names are not allowed.
 .PP
 The ``sixth'' field (the rest of the line) specifies the command to be
 run.
-The entire command portion of the line, up to a newline or %
-character, will be executed by /bin/sh or by the shell
+The entire command portion of the line, up to a newline 
+.\" or % character
+, will be executed by /bin/sh or by the shell
 specified in the SHELL variable of the crontab file.
-Percent-signs (%) in the command, unless escaped with backslash
-(\\), will be changed into newline characters, and all data
-after the first % will be sent to the command as standard
-input. There is no way to split a single command line onto multiple
-lines, like the shell's trailing "\\".
+.\"Percent-signs (%) in the command, unless escaped with backslash
+.\"(\\), will be changed into newline characters, and all data
+.\"after the first % will be sent to the command as standard
+.\"input. There is no way to split a single command line onto multiple
+.\"lines, like the shell's trailing "\\".
+.PP
+systemd-crontab-generator doesn't handle multi-line command split by 
+the % character like vixie-cron.
 .PP
 Note: The day of a command's execution can be specified by two
 fields \(em day of month, and day of week.  If both fields are
@@ -248,15 +254,16 @@ The following lists an example of a user crontab file.
 
 # use /bin/bash to run commands, instead of the default /bin/sh
 SHELL=/bin/bash
-# mail any output to `paul', no matter whose crontab this is
-MAILTO=paul
+.\" # mail any output to `paul', no matter whose crontab this is
+.\" MAILTO=paul
 #
 # run five minutes after midnight, every day
 5 0 * * *       $HOME/bin/daily.job >> $HOME/tmp/out 2>&1
-# run at 2:15pm on the first of every month -- output mailed to paul
+# run at 2:15pm on the first of every month
+.\" -- output mailed to paul
 15 14 1 * *     $HOME/bin/monthly
-# run at 10 pm on weekdays, annoy Joe
-0 22 * * 1-5    mail \-s "It's 10pm" joe%Joe,%%Where are your kids?%
+.\"# run at 10 pm on weekdays, annoy Joe
+.\"0 22 * * 1-5    mail \-s "It's 10pm" joe%Joe,%%Where are your kids?%
 23 0-23/2 * * * echo "run 23 minutes after midn, 2am, 4am ..., everyday"
 5 4 * * sun     echo "run at 5 after 4 every sunday"
 # Run on every second Saturday of the month
@@ -300,11 +307,11 @@ Months or days of the week can be specified by name.
 Environment variables can be set in the crontab.  In BSD or AT&T, the
 environment handed to child processes is basically the one from /etc/rc.
 .PP
-Command output is mailed to the crontab owner (BSD can't do this), can be
-mailed to a person other than the crontab owner (SysV can't do this), or the
-feature can be turned off and no mail will be sent at all (SysV can't do this
-either).
-.PP
+.\"Command output is mailed to the crontab owner (BSD can't do this), can be
+.\"mailed to a person other than the crontab owner (SysV can't do this), or the
+.\"feature can be turned off and no mail will be sent at all (SysV can't do this
+.\"either).
+.\".PP
 All of the `@' commands that can appear in place of the first five fields
 are extensions.
 .SH LIMITATIONS
@@ -342,15 +349,29 @@ the following wrapper code:
 0 4 * * Sat   [ "$(date +\\%e)" = "`ncal | grep $(date +\\%a | sed  -e 's/.$//') | sed -e 's/^.*\\s\\([0-9]\\+\\)\\s*$/\\1/'`" ] && echo "Last Saturday" && program_to_run
 .fi
 
+.B systemd-crontab-generator
+doesn't support these 
+.B vixie-cron
+features:
+.TP 
+*
+sending emails with job output, the output is written to systemd journal
+.TP
+*
+multi-line jobs separated by the '%' character
+.TP
+*
+vixie-cron requires that each entry in a crontab end in a newline character. If the
+last entry in a crontab is missing a newline (ie, terminated by EOF), vixie-cron will
+consider the crontab (at least partially) broken.
+.br
+systemd-cron considers this crontab as valid
 
-.SH DIAGNOSTICS
-cron requires that each entry in a crontab end in a newline character. If the
-last entry in a crontab is missing a newline (ie, terminated by EOF), cron will
-consider the crontab (at least partially) broken. A warning will be written to
-syslog.
+.\".SH DIAGNOSTICS
 
 .SH AUTHOR
 Paul Vixie <paul@vix.com> is the author of 
 .I cron
 and original creator of this manual page. This page has also been modified for
 Debian by Steve Greenland, Javier Fernandez-Sanguino and Christian Kastner.
+
