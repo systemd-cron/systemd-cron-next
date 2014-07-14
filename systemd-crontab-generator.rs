@@ -92,16 +92,24 @@ struct Hour(uint);
 #[deriving(Show)]
 struct Day(uint);
 
+// name, group, class
 #[deriving(Show)]
-struct User(String);
+struct User(String, Option<String>, Option<String>);
 
 #[deriving(Show)]
 struct Command(String);
 
 #[deriving(Show)]
+struct Delay(uint);
+
+#[deriving(Show)]
+struct JobId(String);
+
+#[deriving(Show)]
 enum CrontabEntry {
-    Periodic(Vec<Minute>, Vec<Hour>, Vec<Day>, Vec<Month>, Vec<DayOfWeek>, User, Command),
-    Monotonic(Period, User, Command),
+    Calendar(Vec<Minute>, Vec<Hour>, Vec<Day>, Vec<Month>, Vec<DayOfWeek>, Option<User>, Command),
+    Monotonic(Period, Option<User>, Command),
+    Anacron(Period, Delay, JobId, Command),
 }
 
 trait RangeEntry<T> {
@@ -121,24 +129,24 @@ impl CrontabEntry {
     fn new(parts: Vec<String>) -> Option<CrontabEntry> {
         match parts.len() {
             6 => {
-                Some(Periodic(
+                Some(Calendar(
                     vec![Minute(0)],
                     vec![Hour(0)],
                     vec![Day(0)],
                     vec![January],
                     vec![Sunday],
-                    User("root".into_string()),
+                    Some(User("root".into_string(), None, None)),
                     Command("command".into_string()),
                 ))
             },
             7 => {
-                Some(Periodic(
+                Some(Calendar(
                     vec![Minute(0)],
                     vec![Hour(0)],
                     vec![Day(0)],
                     vec![January],
                     vec![Sunday],
-                    User("root".into_string()),
+                    Some(User("root".into_string(), None, None)),
                     Command("command".into_string()),
                 ))
             }
