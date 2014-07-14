@@ -8,6 +8,7 @@ use std::os;
 use std::io::{BufferedStream, File, IoResult};
 use std::from_str::FromStr;
 use regex::Regex;
+use std::num::from_int;
 
 static SPACES: Regex = regex!("[ \t]+");
 
@@ -27,7 +28,7 @@ enum Month {
     December = 12,
 }
 
-#[deriving(Show)]
+#[deriving(Show, FromPrimitive)]
 enum DayOfWeek {
     Sunday = 0,
     Monday = 1,
@@ -55,7 +56,29 @@ impl FromStr for Period {
             "@weekly"  => Some(Weekly),
             "@monthly" => Some(Monthly),
             "@yearly"  => Some(Yearly),
+            "@midnight" => Some(Daily),
+            "@annually" => Some(Yearly),
+            "1" => Some(Daily),
+            "7" => Some(Weekly),
             _ => None,
+        }
+    }
+}
+
+impl FromStr for DayOfWeek {
+    fn from_str(s: &str) -> Option<DayOfWeek> {
+        match s.slice(0, 3).chars().map(|c| c.to_lowercase()).collect::<String>().as_slice() {
+            "sun" => Some(Sunday),
+            "mon" => Some(Monday),
+            "tue" => Some(Tuesday),
+            "wed" => Some(Wednesday),
+            "thu" => Some(Thursday),
+            "fri" => Some(Friday),
+            "sat" => Some(Saturday),
+            v => match from_str::<int>(v) {
+                Some(n) => from_int::<DayOfWeek>(n % 7),
+                None => None,
+            },
         }
     }
 }
@@ -70,9 +93,28 @@ struct Hour(uint);
 struct Day(uint);
 
 #[deriving(Show)]
+struct User(String);
+
+#[deriving(Show)]
+struct Command(String);
+
+#[deriving(Show)]
 enum CrontabEntry {
-    Periodic(Vec<Minute>, Vec<Hour>, Vec<Day>, Vec<Month>, Vec<DayOfWeek>, String),
-    Monotonic(Period, String),
+    Periodic(Vec<Minute>, Vec<Hour>, Vec<Day>, Vec<Month>, Vec<DayOfWeek>, User, Command),
+    Monotonic(Period, User, Command),
+}
+
+trait RangeEntry<T> {
+    fn everything(&self) -> Vec<T>;
+
+    fn to_range(&self, s: &str) -> Vec<T> {
+        let all = self.everything();
+        if s == "*" {
+            return all;
+        }
+
+        // TODO: split `s` by comma, detect and exapnd ranges, map to all
+    }
 }
 
 impl CrontabEntry {
@@ -85,7 +127,19 @@ impl CrontabEntry {
                     vec![Day(0)],
                     vec![January],
                     vec![Sunday],
-                    "command".into_string(),
+                    User("root".into_string()),
+                    Command("command".into_string()),
+                ))
+            },
+            7 => {
+                Some(Periodic(
+                    vec![Minute(0)],
+                    vec![Hour(0)],
+                    vec![Day(0)],
+                    vec![January],
+                    vec![Sunday],
+                    User("root".into_string()),
+                    Command("command".into_string()),
                 ))
             }
             _ => None
