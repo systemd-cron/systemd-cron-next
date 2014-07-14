@@ -6,6 +6,7 @@ extern crate regex;
 
 use std::os;
 use std::io::{BufferedStream, File, IoResult};
+use std::from_str::FromStr;
 use regex::Regex;
 
 static SPACES: Regex = regex!("[ \t]+");
@@ -38,6 +39,28 @@ enum DayOfWeek {
 }
 
 #[deriving(Show)]
+enum Period {
+    Reboot,
+    Daily,
+    Weekly,
+    Monthly,
+    Yearly,
+}
+
+impl FromStr for Period {
+    fn from_str(s: &str) -> Option<Period> {
+        match s {
+            "@reboot"  => Some(Reboot),
+            "@daily"   => Some(Daily),
+            "@weekly"  => Some(Weekly),
+            "@monthly" => Some(Monthly),
+            "@yearly"  => Some(Yearly),
+            _ => None,
+        }
+    }
+}
+
+#[deriving(Show)]
 struct Minute(uint);
 
 #[deriving(Show)]
@@ -49,19 +72,24 @@ struct Day(uint);
 #[deriving(Show)]
 enum CrontabEntry {
     Periodic(Vec<Minute>, Vec<Hour>, Vec<Day>, Vec<Month>, Vec<DayOfWeek>, String),
-    Monotonic(String, String),
+    Monotonic(Period, String),
 }
 
 impl CrontabEntry {
-    fn new(parts: Vec<String>) -> CrontabEntry {
-        Periodic(
-            vec![Minute(0)],
-            vec![Hour(0)],
-            vec![Day(0)],
-            vec![January],
-            vec![Sunday],
-            "command".into_string(),
-        )
+    fn new(parts: Vec<String>) -> Option<CrontabEntry> {
+        match parts.len() {
+            6 => {
+                Some(Periodic(
+                    vec![Minute(0)],
+                    vec![Hour(0)],
+                    vec![Day(0)],
+                    vec![January],
+                    vec![Sunday],
+                    "command".into_string(),
+                ))
+            }
+            _ => None
+        }
     }
 }
 
@@ -93,7 +121,7 @@ impl<'i> Iterator<CrontabEntry> for CrontabIterator<'i> {
 
                     let parts = SPACES.splitn(line, 6).map(|p| p.into_string()).collect();
 
-                    return Some(CrontabEntry::new(parts));
+                    return Some(CrontabEntry::new(parts).unwrap());
                 }
             }
         }
