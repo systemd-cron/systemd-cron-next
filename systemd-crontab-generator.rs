@@ -105,6 +105,26 @@ struct Delay(uint);
 #[deriving(Show)]
 struct JobId(String);
 
+impl FromStr for User {
+    fn from_str(s: &str) -> Option<User> {
+        let user_class = s.split('/').collect::<Vec<&str>>();
+
+        let (user, class) = match user_class.len() {
+            2 => (*user_class.get(0), Some(user_class.get(1).into_string())),
+            _ => (s, None),
+        };
+
+        let user_group = user.split(':').collect::<Vec<&str>>();
+
+        let (user, group) = match user_group.len() {
+            2 => (user_group.get(0).into_string(), Some(user_group.get(1).into_string())),
+            _ => (user.into_string(), None),
+        };
+
+        Some(User(user, group, class))
+    }
+}
+
 #[deriving(Show)]
 enum CrontabEntry {
     Calendar(Vec<Minute>, Vec<Hour>, Vec<Day>, Vec<Month>, Vec<DayOfWeek>, Option<User>, Command),
@@ -112,16 +132,59 @@ enum CrontabEntry {
     Anacron(Period, Delay, JobId, Command),
 }
 
-trait RangeEntry<T> {
-    fn everything(&self) -> Vec<T>;
+trait RangeEntry {
+    fn everything() -> Vec<Self>;
+}
 
-    fn to_range(&self, s: &str) -> Vec<T> {
-        let all = self.everything();
-        if s == "*" {
-            return all;
+fn to_range<T: RangeEntry + FromStr>(s: &str) -> Vec<T> {
+    let all = RangeEntry::everything();
+    if s == "*" {
+        return all;
+    }
+
+    let ranges = s.split(',').map(|x| {
+        let y = from_str::<T>(x);
+        match y {
+            Some(n) => vec![n],
+            None => {
+                let range_step = x.splitn('/', 2).collect::<Vec<&str>>();
+                let step = from_str::<uint>(*range_step.get(1));
+                vec![]
+            },
         }
+    });
 
-        // TODO: split `s` by comma, detect and exapnd ranges, map to all
+    vec![]
+    // TODO: split `s` by comma, detect and exapnd ranges, map to all
+}
+
+impl RangeEntry for Minute {
+    fn everything() -> Vec<Minute> {
+        range(0, 60).map(|m| Minute(m)).collect()
+    }
+}
+
+impl RangeEntry for Hour {
+    fn everything() -> Vec<Hour> {
+        range(0, 24).map(|h| Hour(h)).collect()
+    }
+}
+
+impl RangeEntry for Day {
+    fn everything() -> Vec<Day> {
+        range(0, 32).map(|d| Day(d)).collect()
+    }
+}
+
+impl RangeEntry for Month {
+    fn everything() -> Vec<Month> {
+        vec![January, February, March, April, May, June, July, August, September, October, November, December]
+    }
+}
+
+impl RangeEntry for DayOfWeek {
+    fn everything() -> Vec<DayOfWeek> {
+        vec![Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday]
     }
 }
 
