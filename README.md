@@ -49,14 +49,10 @@ execute commands from `package()` sub.
 
 ## Usage
 
-The generator runs on system boot. If you change your crontabs in runtime, run `systemd-crontab-update`
-script as root (`sudo systemd-crontab-update`) to regenerate systemd units and reload them.
+The generator runs on system boot and when the crontabs change.
 
 The project includes simple `crontab` command equivalent, which behaves like standard crontab command
-(and accepts the same main options), and runs `systemd-crontab-update` command after user crontab file
-update. Note, though, the systemd-crontab-update requires superuser priviledges, so `crontab` tries
-to run it under `sudo`, so if you are not allowed to run `systemd-crontab-update` via `/etc/sudoers`
-file, you can't update crontab timers.
+(and accepts the same main options).
 
 To control cron jobs, use `cron.target`, e.g. to start and enable cron after installation:
 
