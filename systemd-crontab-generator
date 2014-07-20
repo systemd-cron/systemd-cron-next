@@ -70,6 +70,7 @@ def parse_crontab(filename, withuser=True, monotonic=False):
                 environment['HOME'] = ROOT_USER.pw_dir
                 yield {
                         'e': ' '.join('"%s=%s"' % kv for kv in environment.iteritems()),
+                        's': environment['SHELL'],
                         'l': line,
                         'f': filename,
                         'p': period,
@@ -98,6 +99,7 @@ def parse_crontab(filename, withuser=True, monotonic=False):
 
                     yield {
                             'e': ' '.join('"%s=%s"' % kv for kv in environment.iteritems()),
+                            's': environment['SHELL'],
                             'l': line,
                             'f': filename,
                             'p': period,
@@ -117,6 +119,7 @@ def parse_crontab(filename, withuser=True, monotonic=False):
 
                     yield {
                             'e': ' '.join('"%s=%s"' % kv for kv in environment.iteritems()),
+                            's': environment['SHELL'],
                             'l': line,
                             'f': filename,
                             'm': parse_time_unit(minutes, MINUTES_SET),
@@ -226,7 +229,7 @@ Type=oneshot
 User=%s
 Environment=%s
 ExecStart=%s -c '%s'
-''' % (SELF, job['f'], job['l'], job['u'], job['e'], job['e'].get('SHELL', '/bin/sh'), job['c']))
+''' % (SELF, job['f'], job['l'], job['u'], job['e'], job['s'], job['c']))
 
     return '%s.timer' % unit_name
 
