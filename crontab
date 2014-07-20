@@ -41,10 +41,6 @@ args_parser.add_argument('-i', '--ask', dest='ask', action='store_true', default
  #MLS_LEVEL setting to the crontab file before editing / replacement occurs
  #- see the documentation of MLS_LEVEL in crontab(5).''')
 
-def update():
-    sudo = '' if os.getuid() == 0 else '/usr/bin/sudo '
-    os.system('%s/usr/bin/systemd-crontab-update' % sudo)
-
 def confirm(message):
     while True:
         answer = raw_input(message).lower()
@@ -61,7 +57,6 @@ def list(cron_file, args):
 def remove(cron_file, args):
     if not args.ask or confirm('Are you sure you want to delete %s (y/n)? ' % cron_file):
         os.unlink(cron_file)
-        update()
 
 def edit(cron_file, args):
     with tempfile.NamedTemporaryFile() as tmp:
@@ -74,8 +69,6 @@ def edit(cron_file, args):
             tmp.file.seek(0)
             with open(cron_file, 'w') as out:
                 out.write(tmp.file.read())
-                
-    update()
 
 def replace(cron_file, args):
     infile = args.file
@@ -86,8 +79,6 @@ def replace(cron_file, args):
     else:
         with open(cron_file, 'w'), open(infile, 'r') as out, inp:
             out.write(inp.read())
-
-    update()
 
 if __name__ == '__main__':
     args = args_parser.parse_args()
