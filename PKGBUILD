@@ -1,7 +1,7 @@
 # Maintainer: Konstantin Stepanov <me@kstep.me>
 pkgname=systemd-crontab-generator
-pkgver=0.6
-pkgrel=1
+pkgver=0.7
+pkgrel=2
 pkgdesc="systemd generator to generate timers/services from crontab and anacrontab files"
 url="https://github.com/kstep/systemd-crontab-generator"
 arch=('any')
@@ -25,12 +25,12 @@ build() {
 package() {
     install --mode=0755 -D systemd-crontab-generator ${pkgdir}/usr/lib/systemd/system-generators/systemd-crontab-generator
     install --mode=0644 -D man/systemd-crontab-generator.1 ${pkgdir}/usr/share/man/man1/systemd-crontab-generator.1
-    gzip {$pkgdir}/usr/share/man/man1/systemd-crontab-generator.1
+    gzip ${pkgdir}/usr/share/man/man1/systemd-crontab-generator.1
     install --mode=0755 -D systemd-crontab-update ${pkgdir}/usr/bin/systemd-crontab-update
     install --mode=0644 -D cron.target ${pkgdir}/usr/lib/systemd/system/cron.target
     install --mode=0755 -D crontab ${pkgdir}/usr/bin/crontab
     install --mode=0644 -D man/crontab.1 ${pkgdir}/usr/share/man/man1/crontab.1
-    gzip {$pkgdir}/usr/share/man/man1/crontab.1
+    gzip ${pkgdir}/usr/share/man/man1/crontab.1
     install --mode=0644 -D man/crontab.5 ${pkgdir}/usr/share/man/man5/crontab.5
-    gzip {$pkgdir}/usr/share/man/man5/crontab.5
+    gzip ${pkgdir}/usr/share/man/man5/crontab.5
 }
