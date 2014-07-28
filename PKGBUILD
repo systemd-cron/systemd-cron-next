@@ -12,11 +12,17 @@ replaces=('cron' 'anacron')
 source=(systemd-crontab-generator
         systemd-crontab-update
         cron.target
-        crontab)
-md5sums=('65ab9f843c39d6ceca1f67abb8eca9de'
-         '054206bd63854dd6b27890c855a34ce8'
+        crontab
+        systemd-crontab-generator.1
+        crontab.1
+        crontab.5)
+md5sums=('e90e20d2b5f7f6c44bbc10ac821d9532'
+         '6f00710ad710e319b52edef3e98bd010'
          '97450f27b69a1e88f1b21faad403df7c'
-         'cbda4f9509494bd621b89a537e86b248')
+         'fa6c2b06e1105787ccb10bfce95c18a0'
+         '99411ac19ecdac19c1aa6561ce7beb3d'
+         '39097a37b4aa687f502ef91994325389'
+         'bfffd32858a1aa1a4f5b20e565c010a9')
 
 build() {
     echo
