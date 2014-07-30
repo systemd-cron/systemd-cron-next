@@ -16,7 +16,7 @@
 .\" */
 .\"
 .\" $Id: crontab.5,v 2.4 1994/01/15 20:43:43 vixie Exp $
-.\" 
+.\"
 .TH CRONTAB 5 "03 July 2014"
 .UC 4
 .SH NAME
@@ -56,9 +56,9 @@ The
 string may be placed in quotes (single or double, but matching) to preserve
 leading or trailing blanks. To define an empty variable, quotes
 .B must
-be used. The  
+be used. The
 .I value
-string is 
+string is
 .B not
 parsed for environmental substitutions or replacement of variables, thus lines
 like
@@ -75,7 +75,7 @@ There will not be any subsitution for the defined variables in the
 last value.
 .PP
 An alternative for setting up the commands path is using the fact that
-many shells will treat the tilde(~) as substitution of $HOME, so if you use 
+many shells will treat the tilde(~) as substitution of $HOME, so if you use
 .I bash
 for your tasks you can use this:
 .PP
@@ -85,7 +85,7 @@ for your tasks you can use this:
 Several environment variables are set up automatically by the
 .IR cron (8)
 daemon.
-SHELL is set to /bin/sh, and LOGNAME and HOME are set from the /etc/passwd 
+SHELL is set to /bin/sh, and LOGNAME and HOME are set from the /etc/passwd
 line of the crontab's owner. PATH is set to "/usr/bin:/bin".
 HOME, SHELL, and PATH may be overridden by settings in the crontab;
 LOGNAME is the user that the job is running from, and may not be changed.
@@ -106,7 +106,7 @@ any mails like vixie-cron. The output of jobs is written in the journal.
 .\".PP
 .\"On the Debian GNU/Linux system, cron supports the
 .\".B pam_env
-.\"module, and loads the environment specified by 
+.\"module, and loads the environment specified by
 .\".IR /etc/environment
 .\"and
 .\".IR /etc/security/pam_env.conf .
@@ -114,7 +114,7 @@ any mails like vixie-cron. The output of jobs is written in the journal.
 .\".IR /etc/default/locale .
 .\"However, the PAM settings do
 .\".B NOT
-.\"override the settings described above nor any settings in the 
+.\"override the settings described above nor any settings in the
 .\".I crontab
 .\"file itself. Note in particular that if you want a PATH other than
 .\" "/usr/bin:/bin", you will need to set it in the crontab file.
@@ -124,7 +124,7 @@ any mails like vixie-cron. The output of jobs is written in the journal.
 .\"locale in which
 .\".IR crond (8)
 .\"is started up - ie. either the default system locale, if no LC_* environment
-.\"variables are set, or the locale specified by the LC_* environment variables 
+.\"variables are set, or the locale specified by the LC_* environment variables
 .\"( see
 .\".IR locale (7) ).
 .\"You can use different character encodings for mailed cron job output by
@@ -133,7 +133,7 @@ any mails like vixie-cron. The output of jobs is written in the journal.
 .PP
 The format of a cron command is very much the V7 standard, with a number of
 upward-compatible extensions.  Each line has five time and date fields,
-followed by a command, followed by a newline character ('\\n').  
+followed by a command, followed by a newline character ('\\n').
 The system crontab (/etc/crontab) uses the same format, except that
 the username for the command is specified after the time and
 date fields and before the command. The fields may be separated
@@ -190,7 +190,7 @@ lists of names are not allowed.
 .PP
 The ``sixth'' field (the rest of the line) specifies the command to be
 run.
-The entire command portion of the line, up to a newline 
+The entire command portion of the line, up to a newline
 .\" or % character
 , will be executed by /bin/sh or by the shell
 specified in the SHELL variable of the crontab file.
@@ -200,7 +200,7 @@ specified in the SHELL variable of the crontab file.
 .\"input. There is no way to split a single command line onto multiple
 .\"lines, like the shell's trailing "\\".
 .PP
-systemd-crontab-generator doesn't handle multi-line command split by 
+systemd-crontab-generator doesn't handle multi-line command split by
 the % character like vixie-cron.
 .PP
 Note: The day of a command's execution can be specified by two
@@ -285,7 +285,7 @@ SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # m h dom mon dow user	command
-17 * * * *  root  cd / && run-parts --report /etc/cron.hourly
+17 * * * *  root  cd / && run-parts \-\-report /etc/cron.hourly
 25 6 * * *  root  test \-x /usr/sbin/anacron || ( cd / && run-parts \-\-report /etc/cron.daily )
 47 6 * * 7  root  test \-x /usr/sbin/anacron || ( cd / && run-parts \-\-report /etc/cron.weekly )
 52 6 1 * *  root  test \-x /usr/sbin/anacron || ( cd / && run-parts \-\-report /etc/cron.monthly )
@@ -317,43 +317,43 @@ are extensions.
 .SH LIMITATIONS
 The
 .I cron
-daemon runs with a defined timezone. It currently does not support 
+daemon runs with a defined timezone. It currently does not support
 per-user timezones. All the tasks: system's and user's will be run based on the
-configured timezone. Even if a user specifies the 
+configured timezone. Even if a user specifies the
 .I TZ
 environment variable in his
 .I crontab
 this will affect only the commands executed in the crontab, not the execution
 of the crontab tasks themselves.
 
-The 
+The
 .I crontab
-syntax does not make it possible to define all possible periods one could 
+syntax does not make it possible to define all possible periods one could
 image off. For example, it is not straightforward to define the last
 weekday of a month. If a task needs to be run in a specific period of time
-that cannot be defined in the 
+that cannot be defined in the
 .I crontab
 syntaxs the best approach would be to have the program itself check the
 date and time information and continue execution only if the period
 matches the desired one.
 
 If the program itself cannot do the checks then a wrapper script would be
-required. Useful tools that could be used for date analysis are 
+required. Useful tools that could be used for date analysis are
 .I ncal
 or
-.I calendar 
+.I calendar
 For example, to run a program the last Saturday of every month you could use
 the following wrapper code:
 
 .nf
-0 4 * * Sat   [ "$(date +\\%e)" = "`ncal | grep $(date +\\%a | sed  -e 's/.$//') | sed -e 's/^.*\\s\\([0-9]\\+\\)\\s*$/\\1/'`" ] && echo "Last Saturday" && program_to_run
+0 4 * * Sat   [ "$(date +\\%e)" = "`ncal | grep $(date +\\%a | sed  \-e 's/.$//') | sed \-e 's/^.*\\s\\([0-9]\\+\\)\\s*$/\\1/'`" ] && echo "Last Saturday" && program_to_run
 .fi
 
 .B systemd-crontab-generator
-doesn't support these 
+doesn't support these
 .B vixie-cron
 features:
-.TP 
+.TP
 *
 sending emails with job output, the output is written to systemd journal
 .TP
@@ -370,7 +370,7 @@ systemd-crontab-generator considers this crontab as valid
 .\".SH DIAGNOSTICS
 
 .SH AUTHOR
-Paul Vixie <paul@vix.com> is the author of 
+Paul Vixie <paul@vix.com> is the author of
 .I cron
 and original creator of this manual page. This page has also been modified for
 Debian by Steve Greenland, Javier Fernandez-Sanguino and Christian Kastner.

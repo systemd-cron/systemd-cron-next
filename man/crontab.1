@@ -4,18 +4,18 @@
 crontab - maintain crontab files for individual users
 
 .SH SYNOPSIS
-crontab [-u user] file
+crontab [\-u user] file
 .br
-crontab [-u user] [-l | -r | -e] [-i]
+crontab [\-u user] [\-l | \-r | \-e] [\-i]
 
 .SH DESCRIPTION
-Crontab is the program used to lest users install, deinstall or list 
+Crontab is the program used to let users install, deinstall or list
 recurrent jobs in the legacy cron format.
 .br
 Each user can have their own crontab, and though these are files in /var/spool/,
 they are not intended to be edited directly.
 .br
-These jobs are then automaticaly translated in systemd Timers & Units
+These jobs are then automatically translated in systemd Timers & Units
 by systemd-crontab-generator.
 
 .SH FILES
@@ -24,7 +24,7 @@ by systemd-crontab-generator.
 Directory for users crontabs.
 
 .SH LIMITATIONS
-The -s flag (SELinux) is not supported.
+The \-s flag (SELinux) is not supported.
 .br
 /etc/cron.allow & /etc/cron.deny are not supported.
 
