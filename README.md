@@ -71,6 +71,8 @@ You were warned!
 
 The project is licensed under [CC-BY](http://creativecommons.org/licenses/by/4.0/).
 Don't forget to attribute if you derive from my work!
+Also, specially for [systemd-cron](https://github.com/systemd-cron), the project is licensed
+under [MIT](http://opensource.org/licenses/MIT) license for compatibility.
 
 ## Contribution
 
