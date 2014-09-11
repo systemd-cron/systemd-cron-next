@@ -13,7 +13,7 @@ source=(systemd-crontab-generator
         systemd-crontab-update
         cron.target
         crontab
-        systemd-crontab-generator.1
+        systemd-crontab-generator.8
         crontab.1
         crontab.5)
 md5sums=('3e6e2fb5bf3a6f05cacfbbb113516026'
@@ -30,8 +30,8 @@ build() {
 
 package() {
     install --mode=0755 -D systemd-crontab-generator ${pkgdir}/usr/lib/systemd/system-generators/systemd-crontab-generator
-    install --mode=0644 -D man/systemd-crontab-generator.1 ${pkgdir}/usr/share/man/man1/systemd-crontab-generator.1
-    gzip ${pkgdir}/usr/share/man/man1/systemd-crontab-generator.1
+    install --mode=0644 -D man/systemd-crontab-generator.8 ${pkgdir}/usr/share/man/man1/systemd-crontab-generator.8
+    gzip ${pkgdir}/usr/share/man/man1/systemd-crontab-generator.8
     install --mode=0755 -D systemd-crontab-update ${pkgdir}/usr/bin/systemd-crontab-update
     install --mode=0644 -D cron.target ${pkgdir}/usr/lib/systemd/system/cron.target
     install --mode=0755 -D crontab ${pkgdir}/usr/bin/crontab
