@@ -1,4 +1,4 @@
-.TH SYSTEMD-CRONTAB-GENERATOR 1 "2014-06-29" "" systemd-crontab-generator
+.TH SYSTEMD-CRONTAB-GENERATOR 8 "2014-06-29" "" systemd-crontab-generator
 
 .SH NAME
 systemd-crontab-generator - translate cron schedules in systemd Units
@@ -40,11 +40,6 @@ Directory for system crontabs.
 .B /var/spool/cron
 Directory for users crontabs.
 .br
-
-.\.SH LIMITATIONS
-.\The \-s flag (SELinux) is not supported.
-.\.br
-.\/etc/cron.allow & /etc/cron.deny are not supported.
 
 .SH SEE ALSO
 \fBcrontab\fR(1),\fBsystemd.unit\fR(5),\fBsystemd.timer\fR(5)
