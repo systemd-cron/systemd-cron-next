@@ -1,5 +1,7 @@
 [Unit]
 Description=Cron Jobs
+Documentation=man:systemd-crontab-generator(8)
+Wants=cron-update.path
 
 [Install]
 WantedBy=multi-user.target

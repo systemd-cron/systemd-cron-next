@@ -12,15 +12,19 @@ replaces=('cron' 'anacron')
 source=(systemd-crontab-generator
         systemd-crontab-update
         cron.target
+        cron-update.path
+        cron-update.service
         crontab
         systemd-crontab-generator.8
         crontab.1
         crontab.5)
-md5sums=('3e6e2fb5bf3a6f05cacfbbb113516026'
+md5sums=('8427c0f1420f17078f5668bfe811f042'
          '6f00710ad710e319b52edef3e98bd010'
-         '97450f27b69a1e88f1b21faad403df7c'
+         '3a3f232316b3cc7942844226d35cb833'
+         'cd29641a1a6fcef7940a584e375798f7'
+         'fe839a0330e54aad21f86299b90842b4'
          '4ac2cfc8de6dabf2e08f39b3c3557879'
-         '15acf6fd2a9533c13ce21c6e03210194'
+         'f4ed527f0b0bd881f77839dd92bac997'
          'd863925d682395cef72701725f180884'
          'f5e92c03bcb37acd580e2e27f5facc6a')
 
@@ -34,6 +38,8 @@ package() {
     gzip ${pkgdir}/usr/share/man/man1/systemd-crontab-generator.8
     install --mode=0755 -D systemd-crontab-update ${pkgdir}/usr/bin/systemd-crontab-update
     install --mode=0644 -D cron.target ${pkgdir}/usr/lib/systemd/system/cron.target
+    install --mode=0644 -D cron-update.path ${pkgdir}/usr/lib/systemd/system/cron-update.path
+    install --mode=0644 -D cron-update.service ${pkgdir}/usr/lib/systemd/system/cron-update.service
     install --mode=0755 -D crontab ${pkgdir}/usr/bin/crontab
     install --mode=0644 -D man/crontab.1 ${pkgdir}/usr/share/man/man1/crontab.1
     gzip ${pkgdir}/usr/share/man/man1/crontab.1
