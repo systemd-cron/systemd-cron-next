@@ -1,0 +1,11 @@
+[Unit]
+Description=Cron - path monitor
+Documentation=man:systemd-crontab-generator(8)
+RefuseManualStart=true
+RefuseManualStop=true
+
+[Path]
+PathChanged=/etc/crontab
+PathChanged=/etc/cron.d
+PathChanged=/etc/anacrontab
+PathChanged=/var/spool/cron

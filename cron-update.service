@@ -1,0 +1,8 @@
+[Unit]
+Description=Cron - update units
+Documentation=man:systemd-crontab-generator(8)
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/systemctl daemon-reload
+ExecStart=/bin/systemctl try-restart cron.target
