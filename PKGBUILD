@@ -17,7 +17,8 @@ source=(systemd-crontab-generator
         crontab
         systemd-crontab-generator.8
         crontab.1
-        crontab.5)
+        crontab.5
+        anacrontab.5)
 md5sums=('8427c0f1420f17078f5668bfe811f042'
          '6f00710ad710e319b52edef3e98bd010'
          '3a3f232316b3cc7942844226d35cb833'
@@ -26,7 +27,8 @@ md5sums=('8427c0f1420f17078f5668bfe811f042'
          '4ac2cfc8de6dabf2e08f39b3c3557879'
          'f4ed527f0b0bd881f77839dd92bac997'
          'd863925d682395cef72701725f180884'
-         'f5e92c03bcb37acd580e2e27f5facc6a')
+         'f5e92c03bcb37acd580e2e27f5facc6a'
+         '78e87a252f4134c5d6dbd2130dc0a8dc')
 
 build() {
     echo
@@ -45,4 +47,6 @@ package() {
     gzip ${pkgdir}/usr/share/man/man1/crontab.1
     install --mode=0644 -D man/crontab.5 ${pkgdir}/usr/share/man/man5/crontab.5
     gzip ${pkgdir}/usr/share/man/man5/crontab.5
+    install --mode=0644 -D man/anacrontab.5 ${pkgdir}/usr/share/man/man5/anacrontab.5
+    gzip ${pkgdir}/usr/share/man/man5/anacrontab.5
 }
