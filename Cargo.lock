@@ -1,0 +1,4 @@
+[root]
+name = "systemd-crontab-generator"
+version = "0.1.0"
+
