@@ -2,18 +2,12 @@
 
 extern crate cronparse;
 
-use cronparse::interval::Interval;
-use cronparse::schedule::DayOfWeek;
-use cronparse::crontab::RootCrontabEntry;
+use cronparse::CrontabFile;
+use cronparse::crontab::UserCrontabEntry;
 
 fn main() {
-    let s : Vec<Interval<DayOfWeek>> = "mon,sun-sat/2,*".parse().unwrap();
-    println!("{}", s[1]);
-    for v in s.iter().flat_map(Interval::iter) {
-        println!("{:?}", v);
+    let file: CrontabFile<UserCrontabEntry> = CrontabFile::new("kstep").unwrap();
+    for line in file {
+        println!("{:?}", line);
     }
-
-    println!("{:?}", "* b c\td\t e  ".splitn(6, &[' ', '\t'][..]).collect::<Vec<&str>>());
-
-    println!("{:?}", "* * * * * root command with args".parse::<RootCrontabEntry>());
 }

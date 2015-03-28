@@ -1,6 +1,6 @@
 extern crate cronparse;
 
-use cronparse::crontab::{RootCrontabEntry, UserCrontabEntry, UserInfo};
+use cronparse::crontab::{RootCrontabEntry, UserCrontabEntry, UserInfo, EnvVarEntry, CrontabEntryParseError};
 use cronparse::schedule::{Calendar, Schedule, Minute, Hour, Day, Period};
 use cronparse::schedule::DayOfWeek::*;
 use cronparse::schedule::Month::*;
@@ -56,4 +56,11 @@ fn parse_user_crontab_line_period() {
         sched: Schedule::Period(Period::Reboot),
         cmd: "user command with args".to_string()
     }));
+}
+
+#[test]
+fn parse_envvar_line() {
+    assert_eq!("BATCH  =\t1".parse::<EnvVarEntry>(), Ok(EnvVarEntry("BATCH".to_string(), "1".to_string())));
+    assert_eq!("BATCH  =\"1\"".parse::<EnvVarEntry>(), Ok(EnvVarEntry("BATCH".to_string(), "1".to_string())));
+    assert_eq!("* * * * * test".parse::<EnvVarEntry>(), Err(CrontabEntryParseError));
 }
