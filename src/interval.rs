@@ -3,7 +3,7 @@ use std::fmt::{self, Display, Formatter};
 
 use super::Limited;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Interval<T: Limited> {
     Value(T),
     Range(T, T, u8),

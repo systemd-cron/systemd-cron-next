@@ -1,30 +1,30 @@
 use std::time::Duration;
 use std::str::FromStr;
+use std::iter::FromIterator;
 
-use schedule::{Schedule, Period, Calendar};
-use interval::IntervalParseError;
+use schedule::{Schedule, Period, ScheduleParseError};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CrontabEntry {
     User(UserCrontabEntry),
     Root(RootCrontabEntry),
     Anacron(AnacrontabEntry)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct UserCrontabEntry {
     pub sched: Schedule,
     pub cmd: String
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct RootCrontabEntry {
     pub sched: Schedule,
     pub user: UserInfo,
     pub cmd: String
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct AnacrontabEntry {
     pub period: Period,
     pub delay: Duration,
@@ -32,7 +32,7 @@ pub struct AnacrontabEntry {
     pub cmd: String
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 // user, group, class
 pub struct UserInfo(pub String, pub Option<String>, pub Option<String>);
 
@@ -49,32 +49,17 @@ impl FromStr for UserInfo {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct CrontabEntryParseError;
-
-macro_rules! parse_cron_rec_field {
-    ($iter:expr, $err:ident) => {
-        try!($iter.next().ok_or($err).and_then(FromStr::from_str).map_err(|_| CrontabEntryParseError))
-    };
-    ($iter:expr) => {
-        parse_cron_rec_field!($iter, IntervalParseError)
-    };
-}
 
 impl FromStr for UserCrontabEntry {
     type Err = CrontabEntryParseError;
 
     fn from_str(s: &str) -> Result<UserCrontabEntry, CrontabEntryParseError> {
         let seps = [' ', '\t'];
-        let mut splits = s.split(&seps[..]);
+        let mut splits = s.split(&seps[..]).filter(|v| *v != "");
         Ok(UserCrontabEntry {
-            sched: Schedule::Calendar(Calendar {
-                mins: parse_cron_rec_field!(splits),
-                hrs: parse_cron_rec_field!(splits),
-                days: parse_cron_rec_field!(splits),
-                mons: parse_cron_rec_field!(splits),
-                dows: parse_cron_rec_field!(splits),
-            }),
+            sched: try!(<Result<Schedule, ScheduleParseError>>::from_iter(&mut splits).map_err(|_| CrontabEntryParseError)),
             cmd: splits.collect::<Vec<&str>>().connect(" ")
         })
     }
@@ -85,16 +70,10 @@ impl FromStr for RootCrontabEntry {
 
     fn from_str(s: &str) -> Result<RootCrontabEntry, CrontabEntryParseError> {
         let seps = [' ', '\t'];
-        let mut splits = s.split(&seps[..]);
+        let mut splits = s.split(&seps[..]).filter(|v| *v != "");
         Ok(RootCrontabEntry {
-            sched: Schedule::Calendar(Calendar {
-                mins: parse_cron_rec_field!(splits),
-                hrs: parse_cron_rec_field!(splits),
-                days: parse_cron_rec_field!(splits),
-                mons: parse_cron_rec_field!(splits),
-                dows: parse_cron_rec_field!(splits),
-            }),
-            user: parse_cron_rec_field!(splits, UserInfoParseError),
+            sched: try!(<Result<Schedule, ScheduleParseError>>::from_iter(&mut splits).map_err(|_| CrontabEntryParseError)),
+            user: try!(splits.next().ok_or(UserInfoParseError).and_then(FromStr::from_str).map_err(|_| CrontabEntryParseError)),
             cmd: splits.collect::<Vec<&str>>().connect(" ")
         })
     }

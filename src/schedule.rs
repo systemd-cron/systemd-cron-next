@@ -1,20 +1,22 @@
+#![allow(unused_comparisons)]
 
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 use std::ops::Add;
 use std::num::FromPrimitive;
 use std::ascii::AsciiExt;
+use std::iter::{FromIterator, IntoIterator, Iterator};
 
-use interval::Interval;
+use interval::{Interval, IntervalParseError};
 use super::Limited;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Schedule {
     Calendar(Calendar),
     Period(Period)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Period {
     Reboot,
     Minutely,
@@ -28,7 +30,7 @@ pub enum Period {
     Other(String)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Calendar {
     pub mins: Minutes,
     pub hrs: Hours,
@@ -42,6 +44,34 @@ pub type Hours = Vec<Interval<Hour>>;
 pub type Days = Vec<Interval<Day>>;
 pub type Months = Vec<Interval<Month>>;
 pub type DaysOfWeek = Vec<Interval<DayOfWeek>>;
+
+macro_rules! parse_cron_rec_field {
+    ($iter:expr) => {
+        try!($iter.next().ok_or(IntervalParseError).and_then(FromStr::from_str).map_err(|_| CalendarParseError))
+    };
+}
+
+pub struct CalendarParseError;
+impl FromStr for Calendar {
+    type Err = CalendarParseError;
+    fn from_str(s: &str) -> Result<Calendar, CalendarParseError> {
+        let seps = [' ', '\t'];
+        s.split(&seps[..]).filter(|v| *v != "").collect::<Result<Calendar, CalendarParseError>>()
+    }
+}
+
+impl<'a> FromIterator<&'a str> for Result<Calendar, CalendarParseError> {
+    fn from_iter<T>(iter: T) -> Result<Calendar, CalendarParseError> where T: IntoIterator<Item=&'a str> {
+        let mut it = iter.into_iter();
+        Ok(Calendar {
+            mins: parse_cron_rec_field!(it),
+            hrs: parse_cron_rec_field!(it),
+            days: parse_cron_rec_field!(it),
+            mons: parse_cron_rec_field!(it),
+            dows: parse_cron_rec_field!(it)
+        })
+    }
+}
 
 pub struct PeriodParseError;
 impl FromStr for Period {
@@ -97,15 +127,15 @@ macro_rules! limited {
 }
 
 #[derive(Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct Minute(u8);
+pub struct Minute(pub u8);
 limited!(Minute, min=0, max=59);
 
 #[derive(Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct Hour(u8);
+pub struct Hour(pub u8);
 limited!(Hour, min=0, max=23);
 
 #[derive(Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct Day(u8);
+pub struct Day(pub u8);
 limited!(Day, min=1, max=31);
 
 #[derive(Debug, Copy, FromPrimitive, PartialEq, Eq, PartialOrd, Ord)]
@@ -246,4 +276,34 @@ impl Add<u8> for DayOfWeek {
         else { FromPrimitive::from_u8(val).unwrap() }
     }
 }
+
+#[derive(Debug, PartialEq)]
+pub struct ScheduleParseError;
+impl FromStr for Schedule {
+    type Err = ScheduleParseError;
+    fn from_str(s: &str) -> Result<Schedule, ScheduleParseError> {
+        if s.starts_with("@") {
+            s.parse::<Period>().map_err(|_| ScheduleParseError).map(Schedule::Period)
+        } else {
+            s.parse::<Calendar>().map_err(|_| ScheduleParseError).map(Schedule::Calendar)
+        }
+    }
+}
+
+impl<'a> FromIterator<&'a str> for Result<Schedule, ScheduleParseError> {
+    fn from_iter<T>(iter: T) -> Result<Schedule, ScheduleParseError> where T: IntoIterator<Item=&'a str> {
+        let mut it = iter.into_iter().peekable();
+        let is_period = match it.peek() {
+            None => return Err(ScheduleParseError),
+            Some(s) => s.starts_with("@")
+        };
+
+        if is_period {
+            it.next().ok_or(PeriodParseError).and_then(FromStr::from_str).map_err(|_| ScheduleParseError).map(Schedule::Period)
+        } else {
+            it.collect::<Result<Calendar, CalendarParseError>>().map_err(|_| ScheduleParseError).map(Schedule::Calendar)
+        }
+    }
+}
+
 
