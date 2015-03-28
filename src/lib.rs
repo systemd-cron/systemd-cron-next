@@ -5,7 +5,7 @@
 use std::ops::Add;
 use std::fs::File;
 use std::io::{self, Lines, BufReader, BufRead};
-use std::iter::Iterator;
+use std::iter::{Iterator, Enumerate};
 use std::error::FromError;
 use std::convert::AsRef;
 use std::path::Path;
@@ -20,7 +20,7 @@ pub mod schedule;
 pub mod crontab;
 
 pub struct CrontabFile<T: crontab::ToCrontabEntry> {
-    lines: Lines<BufReader<File>>,
+    lines: Enumerate<Lines<BufReader<File>>>,
     _marker: std::marker::PhantomData<T>
 }
 
@@ -31,7 +31,7 @@ impl<T: crontab::ToCrontabEntry> CrontabFile<T> {
 
     pub fn from_file(file: File) -> CrontabFile<T> {
         CrontabFile {
-            lines: BufReader::new(file).lines(),
+            lines: BufReader::new(file).lines().enumerate(),
             _marker: std::marker::PhantomData
         }
     }
@@ -57,21 +57,21 @@ impl FromError<crontab::CrontabEntryParseError> for CrontabFileError {
 
 
 impl<T: crontab::ToCrontabEntry> Iterator for CrontabFile<T> {
-    type Item = Result<crontab::CrontabEntry, CrontabFileError>;
-    fn next(&mut self) -> Option<Result<crontab::CrontabEntry, CrontabFileError>> {
+    type Item = Result<crontab::CrontabEntry, (usize, CrontabFileError)>;
+    fn next(&mut self) -> Option<Result<crontab::CrontabEntry, (usize, CrontabFileError)>> {
         loop {
             match self.lines.next() {
-                Some(Ok(line)) => {
+                Some((l, Ok(line))) => {
                     if line.len() == 0 || line.starts_with("#") || line.chars().all(|c| c == ' ' || c == '\t') {
                         continue;
                     }
 
                     return Some(match line.parse::<crontab::EnvVarEntry>() {
                         Ok(envvar) => Ok(crontab::CrontabEntry::EnvVar(envvar)),
-                        _ => line.parse::<T>().map_err(FromError::from_error).map(crontab::ToCrontabEntry::to_crontab_entry)
+                        _ => line.parse::<T>().map_err(|e| (l, FromError::from_error(e))).map(crontab::ToCrontabEntry::to_crontab_entry)
                     });
                 },
-                Some(Err(e)) => return Some(Err(FromError::from_error(e))),
+                Some((l, Err(e))) => return Some(Err((l, FromError::from_error(e)))),
                 None => return None
             }
         }
