@@ -15,7 +15,7 @@ fn main() {
     for line in file {
         match line {
             Ok(entry) => generate_systemd_units(entry),
-            Err((lineno, error)) => panic!("error in {}:{}: {:?}", filename, lineno, error)
+            Err(error) => panic!("At file {}: {}", filename, error)
         }
     }
 }

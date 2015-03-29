@@ -6,9 +6,10 @@ use std::ops::Add;
 use std::fs::File;
 use std::io::{self, Lines, BufReader, BufRead};
 use std::iter::{Iterator, Enumerate};
-use std::error::FromError;
+use std::error::{FromError, Error};
 use std::convert::AsRef;
 use std::path::Path;
+use std::fmt::{self, Display, Formatter};
 
 pub trait Limited: Add<u8, Output=Self> + PartialOrd + Copy {
     fn min_value() -> Self;
@@ -38,40 +39,83 @@ impl<T: crontab::ToCrontabEntry> CrontabFile<T> {
 }
 
 #[derive(Debug)]
-pub enum CrontabFileError {
+pub enum CrontabFileErrorKind {
     Io(io::Error),
     Parse(crontab::CrontabEntryParseError)
 }
 
+#[derive(Debug)]
+pub struct CrontabFileError {
+    pub lineno: usize,
+    pub line: String,
+    pub kind: CrontabFileErrorKind
+}
+
 impl FromError<io::Error> for CrontabFileError {
     fn from_error(err: io::Error) -> CrontabFileError {
-        CrontabFileError::Io(err)
+        CrontabFileError {
+            lineno: 0,
+            line: "".to_string(),
+            kind: CrontabFileErrorKind::Io(err)
+        }
     }
 }
 
 impl FromError<crontab::CrontabEntryParseError> for CrontabFileError {
     fn from_error(err: crontab::CrontabEntryParseError) -> CrontabFileError {
-        CrontabFileError::Parse(err)
+        CrontabFileError {
+            lineno: 0,
+            line: "".to_string(),
+            kind: CrontabFileErrorKind::Parse(err)
+        }
     }
 }
 
+impl Error for CrontabFileError {
+    fn description(&self) -> &str {
+        &"error parsing crontab"[..]
+    }
+
+    fn cause(&self) -> Option<&Error> {
+        // match self.kind {
+        //      CrontabFileErrorKind::Parse(ref e) => Some(e as &Error),
+        //      CrontabFileErrorKind::Io(ref e) => Some(e as &Error)
+        // }
+        None
+    }
+}
+
+impl Display for CrontabFileError {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "error parsing crontab at line {} ({:?}): {:?}", self.lineno, self.line, self.kind)
+    }
+}
 
 impl<T: crontab::ToCrontabEntry> Iterator for CrontabFile<T> {
-    type Item = Result<crontab::CrontabEntry, (usize, CrontabFileError)>;
-    fn next(&mut self) -> Option<Result<crontab::CrontabEntry, (usize, CrontabFileError)>> {
+    type Item = Result<crontab::CrontabEntry, CrontabFileError>;
+    fn next(&mut self) -> Option<Result<crontab::CrontabEntry, CrontabFileError>> {
         loop {
             match self.lines.next() {
-                Some((l, Ok(line))) => {
+                Some((lineno, Ok(line))) => {
                     if line.len() == 0 || line.starts_with("#") || line.chars().all(|c| c == ' ' || c == '\t') {
                         continue;
                     }
 
                     return Some(match line.parse::<crontab::EnvVarEntry>() {
                         Ok(envvar) => Ok(crontab::CrontabEntry::EnvVar(envvar)),
-                        _ => line.parse::<T>().map_err(|e| (l, FromError::from_error(e))).map(crontab::ToCrontabEntry::to_crontab_entry)
+                        _ => line.parse::<T>().map_err(|e| {
+                            let mut err: CrontabFileError = FromError::from_error(e);
+                            err.lineno = lineno + 1;
+                            err.line = line.to_string();
+                            err
+                        }).map(crontab::ToCrontabEntry::to_crontab_entry)
                     });
                 },
-                Some((l, Err(e))) => return Some(Err((l, FromError::from_error(e)))),
+                Some((lineno, Err(e))) => {
+                    let mut err: CrontabFileError = FromError::from_error(e);
+                    err.lineno = lineno + 1;
+                    return Some(Err(err));
+                },
                 None => return None
             }
         }
