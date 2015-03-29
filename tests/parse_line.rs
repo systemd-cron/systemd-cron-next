@@ -1,6 +1,6 @@
 extern crate cronparse;
 
-use cronparse::crontab::{RootCrontabEntry, UserCrontabEntry, UserInfo, EnvVarEntry, CrontabEntryParseError};
+use cronparse::crontab::{SystemCrontabEntry, UserCrontabEntry, UserInfo, EnvVarEntry, CrontabEntryParseError};
 use cronparse::schedule::{Calendar, Schedule, Minute, Hour, Day, Period};
 use cronparse::schedule::DayOfWeek::*;
 use cronparse::schedule::Month::*;
@@ -8,7 +8,7 @@ use cronparse::interval::Interval;
 
 #[test]
 fn parse_root_crontab_line_calendar_stars() {
-    assert_eq!("* *\t*  * \t* root command with args".parse::<RootCrontabEntry>(), Ok(RootCrontabEntry {
+    assert_eq!("* *\t*  * \t* root command with args".parse::<SystemCrontabEntry>(), Ok(SystemCrontabEntry {
         sched: Schedule::Calendar(Calendar {
             mins: vec![Interval::Full(1)],
             hrs: vec![Interval::Full(1)],
@@ -23,7 +23,7 @@ fn parse_root_crontab_line_calendar_stars() {
 
 #[test]
 fn parse_root_crontab_line_calendar() {
-    assert_eq!("*/15,1 1-5/2\t1,2,*/5  Jan-3/3,Feb \tSun,1,4-Fri/2 user command with args".parse::<RootCrontabEntry>(), Ok(RootCrontabEntry {
+    assert_eq!("*/15,1 1-5/2\t1,2,*/5  Jan-3/3,Feb \tSun,1,4-Fri/2 user command with args".parse::<SystemCrontabEntry>(), Ok(SystemCrontabEntry {
         sched: Schedule::Calendar(Calendar {
             mins: vec![Interval::Full(15), Interval::Value(Minute(1))],
             hrs: vec![Interval::Range(Hour(1), Hour(5), 2)],

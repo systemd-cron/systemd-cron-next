@@ -15,7 +15,7 @@ pub trait ToCrontabEntry : FromStr<Err=CrontabEntryParseError> {
 pub enum CrontabEntry {
     EnvVar(EnvVarEntry),
     User(UserCrontabEntry),
-    Root(RootCrontabEntry),
+    System(SystemCrontabEntry),
     Anacron(AnacrontabEntry)
 }
 
@@ -29,7 +29,7 @@ pub struct UserCrontabEntry {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct RootCrontabEntry {
+pub struct SystemCrontabEntry {
     pub sched: Schedule,
     pub user: UserInfo,
     pub cmd: String
@@ -49,9 +49,9 @@ impl ToCrontabEntry for UserCrontabEntry {
     }
 }
 
-impl ToCrontabEntry for RootCrontabEntry {
+impl ToCrontabEntry for SystemCrontabEntry {
     fn to_crontab_entry(self) -> CrontabEntry {
-        CrontabEntry::Root(self)
+        CrontabEntry::System(self)
     }
 }
 
@@ -202,13 +202,13 @@ impl FromStr for UserCrontabEntry {
     }
 }
 
-impl FromStr for RootCrontabEntry {
+impl FromStr for SystemCrontabEntry {
     type Err = CrontabEntryParseError;
 
-    fn from_str(s: &str) -> Result<RootCrontabEntry, CrontabEntryParseError> {
+    fn from_str(s: &str) -> Result<SystemCrontabEntry, CrontabEntryParseError> {
         let seps = [' ', '\t'];
         let mut splits = s.split(&seps[..]).filter(|v| *v != "");
-        Ok(RootCrontabEntry {
+        Ok(SystemCrontabEntry {
             sched: try!(<Result<Schedule, ScheduleParseError>>::from_iter(&mut splits)),
             user: try!(splits.next().ok_or(UserInfoParseError).and_then(FromStr::from_str)),
             cmd: splits.collect::<Vec<&str>>().connect(" ")
