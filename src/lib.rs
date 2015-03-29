@@ -44,6 +44,15 @@ pub enum CrontabFileErrorKind {
     Parse(crontab::CrontabEntryParseError)
 }
 
+impl Display for CrontabFileErrorKind {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match *self {
+            CrontabFileErrorKind::Io(ref e) => e.fmt(f),
+            CrontabFileErrorKind::Parse(ref e) => e.fmt(f)
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct CrontabFileError {
     pub lineno: usize,
@@ -87,7 +96,7 @@ impl Error for CrontabFileError {
 
 impl Display for CrontabFileError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "error parsing crontab at line {} ({:?}): {:?}", self.lineno, self.line, self.kind)
+        write!(f, "error parsing crontab at line {} ({:?}): {}", self.lineno, self.line, self.kind)
     }
 }
 
