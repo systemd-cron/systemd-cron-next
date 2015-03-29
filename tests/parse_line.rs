@@ -62,5 +62,5 @@ fn parse_user_crontab_line_period() {
 fn parse_envvar_line() {
     assert_eq!("BATCH  =\t1".parse::<EnvVarEntry>(), Ok(EnvVarEntry("BATCH".to_string(), "1".to_string())));
     assert_eq!("BATCH  =\"1\"".parse::<EnvVarEntry>(), Ok(EnvVarEntry("BATCH".to_string(), "1".to_string())));
-    assert_eq!("* * * * * test".parse::<EnvVarEntry>(), Err(CrontabEntryParseError));
+    assert_eq!("* * * * * test".parse::<EnvVarEntry>(), Err(CrontabEntryParseError::InvalidEnvVarName));
 }

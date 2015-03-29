@@ -1,6 +1,9 @@
 use std::time::Duration;
 use std::str::FromStr;
 use std::iter::FromIterator;
+use std::error::{FromError, Error};
+use std::num::ParseIntError;
+use std::fmt::{self, Display, Formatter};
 
 use schedule::{Schedule, Period, ScheduleParseError, PeriodParseError};
 
@@ -72,20 +75,20 @@ impl FromStr for EnvVarEntry {
 
         let name = match splits.next() {
             Some(n) => n.trim_right_matches(&spaces[..]),
-            None => return Err(CrontabEntryParseError)
+            None => return Err(CrontabEntryParseError::MissingEnvVarName)
         };
 
         if name.len() == 0 {
-            return Err(CrontabEntryParseError)
+            return Err(CrontabEntryParseError::MissingEnvVarName)
         }
 
         if name.chars().any(|v| v == ' ' || v == '\t') {
-            return Err(CrontabEntryParseError)
+            return Err(CrontabEntryParseError::InvalidEnvVarName)
         }
 
         let mut value = match splits.next() {
             Some(v) => v.trim_left_matches(&spaces[..]),
-            None => return Err(CrontabEntryParseError)
+            None => return Err(CrontabEntryParseError::MissingEnvVarValue)
         };
 
         if value.len() > 1 {
@@ -102,6 +105,7 @@ impl FromStr for EnvVarEntry {
 // user, group, class
 pub struct UserInfo(pub String, pub Option<String>, pub Option<String>);
 
+#[derive(Debug, PartialEq)]
 pub struct UserInfoParseError;
 impl FromStr for UserInfo {
     type Err = UserInfoParseError;
@@ -115,8 +119,75 @@ impl FromStr for UserInfo {
     }
 }
 
+impl Error for UserInfoParseError {
+    fn description(&self) -> &str {
+        "invalid user name"
+    }
+    fn cause(&self) -> Option<&Error> {
+        None
+    }
+}
+
+impl Display for UserInfoParseError {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        f.write_str("invalid user name")
+    }
+}
+
 #[derive(Debug, PartialEq)]
-pub struct CrontabEntryParseError;
+pub enum CrontabEntryParseError {
+    InvalidSchedule(ScheduleParseError),
+    InvalidPeriod(PeriodParseError),
+    InvalidUser(UserInfoParseError),
+    InvalidDelay(ParseIntError),
+    InvalidEnvVarName,
+    MissingPeriod,
+    MissingDelay,
+    MissingJobId,
+    MissingEnvVarName,
+    MissingEnvVarValue,
+}
+
+impl Display for CrontabEntryParseError {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        use self::CrontabEntryParseError::*;
+        match *self {
+            InvalidSchedule(ref e) => write!(f, "invalid schedule: {}", e),
+            InvalidPeriod(ref e) => write!(f, "invalid period: {}", e),
+            InvalidUser(ref e) => write!(f, "invalid user: {}", e),
+            InvalidDelay(ref e) => write!(f, "invalid delay: {}", e),
+            _ => f.write_str(self.description()),
+        }
+    }
+}
+
+impl Error for CrontabEntryParseError {
+    fn description(&self) -> &str {
+        use self::CrontabEntryParseError::*;
+        match *self {
+            InvalidSchedule(_) => "invalid schedule",
+            InvalidPeriod(_) => "invalid period",
+            InvalidUser(_) => "invalid user",
+            InvalidDelay(_) => "invalid delay",
+            InvalidEnvVarName => "invalid environment variable name",
+            MissingPeriod => "missing period",
+            MissingDelay => "missing delay",
+            MissingJobId => "missing jobid",
+            MissingEnvVarName => "missing environment variable name",
+            MissingEnvVarValue => "missing environment variable value",
+        }
+    }
+    fn cause(&self) -> Option<&Error> {
+        use self::CrontabEntryParseError::*;
+        match *self {
+            InvalidSchedule(ref e) => Some(e),
+            InvalidPeriod(ref e) => Some(e),
+            InvalidUser(ref e) => Some(e),
+            InvalidDelay(ref e) => Some(e),
+            _ => None,
+        }
+    }
+}
 
 impl FromStr for UserCrontabEntry {
     type Err = CrontabEntryParseError;
@@ -125,7 +196,7 @@ impl FromStr for UserCrontabEntry {
         let seps = [' ', '\t'];
         let mut splits = s.split(&seps[..]).filter(|v| *v != "");
         Ok(UserCrontabEntry {
-            sched: try!(<Result<Schedule, ScheduleParseError>>::from_iter(&mut splits).map_err(|_| CrontabEntryParseError)),
+            sched: try!(<Result<Schedule, ScheduleParseError>>::from_iter(&mut splits)),
             cmd: splits.collect::<Vec<&str>>().connect(" ")
         })
     }
@@ -138,8 +209,8 @@ impl FromStr for RootCrontabEntry {
         let seps = [' ', '\t'];
         let mut splits = s.split(&seps[..]).filter(|v| *v != "");
         Ok(RootCrontabEntry {
-            sched: try!(<Result<Schedule, ScheduleParseError>>::from_iter(&mut splits).map_err(|_| CrontabEntryParseError)),
-            user: try!(splits.next().ok_or(UserInfoParseError).and_then(FromStr::from_str).map_err(|_| CrontabEntryParseError)),
+            sched: try!(<Result<Schedule, ScheduleParseError>>::from_iter(&mut splits)),
+            user: try!(splits.next().ok_or(UserInfoParseError).and_then(FromStr::from_str)),
             cmd: splits.collect::<Vec<&str>>().connect(" ")
         })
     }
@@ -152,10 +223,28 @@ impl FromStr for AnacrontabEntry {
         let seps = [' ', '\t'];
         let mut splits = s.split(&seps[..]).filter(|v| *v != "");
         Ok(AnacrontabEntry {
-            period: try!(splits.next().ok_or(PeriodParseError).and_then(FromStr::from_str).map_err(|_| CrontabEntryParseError)),
-            delay: try!(splits.next().and_then(|v| v.parse().ok()).map(Duration::minutes).ok_or(CrontabEntryParseError)),
-            jobid: try!(splits.next().ok_or(CrontabEntryParseError).map(ToString::to_string)),
+            period: try!(splits.next().map(|v| v.parse().map_err(CrontabEntryParseError::InvalidPeriod)).unwrap_or(Err(CrontabEntryParseError::MissingPeriod))),
+            delay: try!(splits.next().map(|v| v.parse().map_err(CrontabEntryParseError::InvalidDelay).map(Duration::minutes)).unwrap_or(Err(CrontabEntryParseError::MissingDelay))),
+            jobid: try!(splits.next().map(ToString::to_string).ok_or(CrontabEntryParseError::MissingJobId)),
             cmd: splits.collect::<Vec<&str>>().connect(" ")
         })
+    }
+}
+
+impl FromError<ScheduleParseError> for CrontabEntryParseError {
+    fn from_error(e: ScheduleParseError) -> CrontabEntryParseError {
+        CrontabEntryParseError::InvalidSchedule(e)
+    }
+}
+
+impl FromError<UserInfoParseError> for CrontabEntryParseError {
+    fn from_error(e: UserInfoParseError) -> CrontabEntryParseError {
+        CrontabEntryParseError::InvalidUser(e)
+    }
+}
+
+impl FromError<ParseIntError> for CrontabEntryParseError {
+    fn from_error(e: ParseIntError) -> CrontabEntryParseError {
+        CrontabEntryParseError::InvalidDelay(e)
     }
 }

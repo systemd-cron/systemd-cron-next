@@ -1,7 +1,11 @@
 use std::str::FromStr;
 use std::fmt::{self, Display, Formatter};
+use std::error::{FromError, Error};
+use std::num::ParseIntError;
 
 use super::Limited;
+use schedule::{MonthParseError, DayOfWeekParseError};
+use self::IntervalParseError::*;
 
 #[derive(Debug, PartialEq)]
 pub enum Interval<T: Limited> {
@@ -10,20 +14,78 @@ pub enum Interval<T: Limited> {
     Full(u8)
 }
 
-#[derive(Debug)]
-pub struct IntervalParseError;
+#[derive(Debug, PartialEq)]
+pub enum IntervalParseError {
+    ZeroStep,
+    InvalidInteger(ParseIntError),
+    InvalidMonth(MonthParseError),
+    InvalidDayOfWeek(DayOfWeekParseError),
+    InverseRange
+}
 
-impl<T: Limited + FromStr> FromStr for Interval<T> {
+impl FromError<ParseIntError> for IntervalParseError {
+    fn from_error(err: ParseIntError) -> IntervalParseError {
+        IntervalParseError::InvalidInteger(err)
+    }
+}
+
+impl FromError<MonthParseError> for IntervalParseError {
+    fn from_error(err: MonthParseError) -> IntervalParseError {
+        IntervalParseError::InvalidMonth(err)
+    }
+}
+
+impl FromError<DayOfWeekParseError> for IntervalParseError {
+    fn from_error(err: DayOfWeekParseError) -> IntervalParseError {
+        IntervalParseError::InvalidDayOfWeek(err)
+    }
+}
+
+impl Display for IntervalParseError {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match *self {
+            InverseRange => f.write_str("range end is less than start"),
+            ZeroStep => f.write_str("step is zero"),
+            InvalidInteger(ref e) => e.fmt(f),
+            InvalidMonth(ref e) => e.fmt(f),
+            InvalidDayOfWeek(ref e) => e.fmt(f),
+        }
+    }
+}
+
+impl Error for IntervalParseError {
+    fn description(&self) -> &str {
+        match *self {
+            InvalidInteger(_) => "invalid integer format",
+            InvalidMonth(_) => "invalid month value",
+            InvalidDayOfWeek(_) => "invalid day of week value",
+            ZeroStep => "step is zero",
+            InverseRange => "range end is less than start"
+        }
+    }
+    fn cause(&self) -> Option<&Error> {
+        match *self {
+            InvalidInteger(ref e) => Some(e),
+            InvalidMonth(ref e) => Some(e),
+            InvalidDayOfWeek(ref e) => Some(e),
+            _ => None
+        }
+    }
+}
+
+impl<T> FromStr for Interval<T>
+where T: Limited, T: FromStr, IntervalParseError: FromError<<T as FromStr>::Err>
+{
     type Err = IntervalParseError;
     fn from_str(s: &str) -> Result<Interval<T>, IntervalParseError> {
         let (range, step): (&str, u8) = if let Some(slash) = s.find('/') {
-            (&s[..slash], try!(s[slash+1..].parse().map_err(|_| IntervalParseError))) // FIXME
+            (&s[..slash], try!(s[slash+1..].parse())) // FIXME
         } else {
             (s, 1)
         };
 
         if step == 0 {
-            return Err(IntervalParseError)
+            return Err(IntervalParseError::ZeroStep)
         }
 
         if range == "*" {
@@ -31,14 +93,13 @@ impl<T: Limited + FromStr> FromStr for Interval<T> {
         }
 
         let (from, to): (T, T) = if let Some(hyphen) = range.find('-') {
-            (try!(range[..hyphen].parse().map_err(|_| IntervalParseError)),
-            try!(range[hyphen+1..].parse().map_err(|_| IntervalParseError)))
+            (try!(range[..hyphen].parse()), try!(range[hyphen+1..].parse()))
         } else {
-            return range.parse().map_err(|_| IntervalParseError).map(Interval::Value);
+            return range.parse().map_err(FromError::from_error).map(Interval::Value);
         };
 
         if from > to {
-            return Err(IntervalParseError)
+            return Err(IntervalParseError::InverseRange)
         }
 
         Ok(Interval::Range(from, to, step))
@@ -124,7 +185,9 @@ impl<T: Limited> Iterator for IntervalIter<T> {
     }
 }
 
-impl<T: Limited + FromStr> FromStr for Vec<Interval<T>> {
+impl<T: Limited + FromStr> FromStr for Vec<Interval<T>>
+where T: Limited, T: FromStr, IntervalParseError: FromError<<T as FromStr>::Err>
+{
     type Err = IntervalParseError;
     fn from_str(s: &str) -> Result<Vec<Interval<T>>, IntervalParseError> {
         s.split(',').map(|v| v.parse::<Interval<T>>()).collect()
