@@ -24,7 +24,7 @@ static SYSTEM_CRONTAB_DIR: &'static str = "/etc/cron.d";  // SystemCrontabEntry
 static ANACRONTAB_FILE: &'static str = "/etc/anacrontab";  // AnacrontabEntry
 
 fn process_crontab_file<T: ToCrontabEntry, P: AsRef<Path>>(path: P) {
-    let _ = CrontabFile::<T>::new(path.as_ref()).map(|crontab| {
+    CrontabFile::<T>::new(path.as_ref()).map(|crontab| {
         let mut env = BTreeMap::new();
         for entry in crontab {
             match entry {
@@ -34,6 +34,8 @@ fn process_crontab_file<T: ToCrontabEntry, P: AsRef<Path>>(path: P) {
                 Err(err @ CrontabFileError { kind: CrontabFileErrorKind::Parse(_), .. }) => println!("skipping file {} due to parsing error: {}", path.as_ref().display(), err),
             }
         }
+    }).unwrap_or_else(|err| {
+        println!("error parsing file {}: {}", path.as_ref().display(), err);
     });
 }
 
@@ -42,7 +44,7 @@ fn process_crontab_dir<T: ToCrontabEntry>(dir: &str) {
                                        .filter(|r| r.as_ref().map(|p| p.is_file()).unwrap_or(true))
                                        .collect::<Result<Vec<PathBuf>, _>>());
     match files {
-        Err(err) => println!("Error processing directory {}: {}", dir, err),
+        Err(err) => println!("error processing directory {}: {}", dir, err),
         Ok(files) => for file in files {
             process_crontab_file::<T, _>(file);
         }
