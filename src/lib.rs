@@ -2,7 +2,7 @@
 #![feature(convert)]
 #![feature(std_misc)]
 
-use std::ops::Add;
+use std::ops::{Add, Deref};
 use std::fs::File;
 use std::io::{self, Lines, BufReader, BufRead};
 use std::iter::{Iterator, Enumerate};
@@ -56,7 +56,7 @@ impl Display for CrontabFileErrorKind {
 #[derive(Debug)]
 pub struct CrontabFileError {
     pub lineno: usize,
-    pub line: String,
+    pub line: Option<String>,
     pub kind: CrontabFileErrorKind
 }
 
@@ -64,7 +64,7 @@ impl FromError<io::Error> for CrontabFileError {
     fn from_error(err: io::Error) -> CrontabFileError {
         CrontabFileError {
             lineno: 0,
-            line: "".to_string(),
+            line: None,
             kind: CrontabFileErrorKind::Io(err)
         }
     }
@@ -74,7 +74,7 @@ impl FromError<crontab::CrontabEntryParseError> for CrontabFileError {
     fn from_error(err: crontab::CrontabEntryParseError) -> CrontabFileError {
         CrontabFileError {
             lineno: 0,
-            line: "".to_string(),
+            line: None,
             kind: CrontabFileErrorKind::Parse(err)
         }
     }
@@ -82,21 +82,20 @@ impl FromError<crontab::CrontabEntryParseError> for CrontabFileError {
 
 impl Error for CrontabFileError {
     fn description(&self) -> &str {
-        &"error parsing crontab"[..]
+        "error parsing crontab"
     }
 
     fn cause(&self) -> Option<&Error> {
-        // match self.kind {
-        //      CrontabFileErrorKind::Parse(ref e) => Some(e as &Error),
-        //      CrontabFileErrorKind::Io(ref e) => Some(e as &Error)
-        // }
-        None
+        match self.kind {
+            CrontabFileErrorKind::Parse(ref e) => Some(e),
+            CrontabFileErrorKind::Io(ref e) => Some(e)
+        }
     }
 }
 
 impl Display for CrontabFileError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "error parsing crontab at line {} ({:?}): {}", self.lineno, self.line, self.kind)
+        write!(f, "error parsing crontab at line {} ({:?}): {}", self.lineno, self.line.as_ref().map(Deref::deref).unwrap_or("<???>"), self.kind)
     }
 }
 
@@ -115,7 +114,7 @@ impl<T: crontab::ToCrontabEntry> Iterator for CrontabFile<T> {
                         _ => line.parse::<T>().map_err(|e| {
                             let mut err: CrontabFileError = FromError::from_error(e);
                             err.lineno = lineno + 1;
-                            err.line = line.to_string();
+                            err.line = Some(line.to_string());
                             err
                         }).map(crontab::ToCrontabEntry::to_crontab_entry)
                     });
