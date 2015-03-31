@@ -1,16 +1,18 @@
 #![feature(path_ext)]
 #![feature(fs_walk)]
 #![feature(convert)]
+#![feature(libc)]
 
-#[macro_use(log)]
 extern crate cronparse;
+extern crate libc;
 
 use std::thread::spawn;
 use std::env;
 
 use cronparse::crontab::{UserCrontabEntry, SystemCrontabEntry, AnacrontabEntry};
-use cronparse::log::{KernelLogger, ConsoleLogger, AnyLogger};
+use log::{KernelLogger, ConsoleLogger, AnyLogger};
 
+mod log;
 mod process;
 
 static USERS_CRONTAB_DIR: &'static str = "/var/spool/cron";  // UserCrontabEntry

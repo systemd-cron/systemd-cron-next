@@ -1,3 +1,5 @@
+#![macro_use]
+
 use std::env::current_exe;
 use std::fs::{OpenOptions, File};
 use std::io::{stderr, Stderr, Write};
@@ -19,6 +21,7 @@ macro_rules! log {
 
 #[repr(u8)]
 #[derive(Debug, Copy, PartialOrd, PartialEq, Eq, Ord)]
+#[allow(dead_code)]
 pub enum LogLevel {
     Emergency = 0,
     Alert =  1,

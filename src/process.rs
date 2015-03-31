@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use cronparse::{CrontabFile, CrontabFileError, CrontabFileErrorKind};
 use cronparse::crontab::{EnvVarEntry, CrontabEntry, ToCrontabEntry};
-use cronparse::log::{Logger, LogLevel};
+use log::{Logger, LogLevel};
 
 pub fn process_crontab_dir<T: ToCrontabEntry>(dir: &str, logger: &mut Logger) {
     let files = walk_dir(dir).and_then(|fs| fs.map(|r| r.map(|p| p.path()))
