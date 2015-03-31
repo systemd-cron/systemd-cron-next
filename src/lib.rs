@@ -1,6 +1,9 @@
 #![feature(core)]
 #![feature(convert)]
 #![feature(std_misc)]
+#![feature(libc)]
+
+extern crate libc;  // to getpid
 
 use std::ops::{Add, Deref};
 use std::fs::File;
@@ -16,6 +19,7 @@ pub trait Limited: Add<u8, Output=Self> + PartialOrd + Copy {
     fn max_value() -> Self;
 }
 
+pub mod log;
 pub mod interval;
 pub mod schedule;
 pub mod crontab;
