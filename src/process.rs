@@ -26,7 +26,7 @@ pub fn process_crontab_file<T: ToCrontabEntry, P: AsRef<Path>>(path: P, logger: 
         for entry in crontab {
             match entry {
                 Ok(CrontabEntry::EnvVar(EnvVarEntry(name, value))) => { env.insert(name, value); },
-                Ok(data) => generate_systemd_units(path.as_ref(), data, &env),
+                Ok(data) => generate_systemd_units(path.as_ref(), data, &env, logger),
                 Err(err @ CrontabFileError { kind: CrontabFileErrorKind::Io(_), .. }) => log!(logger, LogLevel::Warning, "error accessing file {}: {}", path.as_ref().display(), err),
                 Err(err @ CrontabFileError { kind: CrontabFileErrorKind::Parse(_), .. }) => log!(logger, LogLevel::Warning, "skipping file {} due to parsing error: {}", path.as_ref().display(), err),
             }
@@ -36,7 +36,7 @@ pub fn process_crontab_file<T: ToCrontabEntry, P: AsRef<Path>>(path: P, logger: 
     });
 }
 
-fn generate_systemd_units(path: &Path, entry: CrontabEntry, env: &BTreeMap<String, String>) {
-    println!("{} => {:?}, {:?}", path.display(), entry, env);
+fn generate_systemd_units(path: &Path, entry: CrontabEntry, env: &BTreeMap<String, String>, logger: &mut Logger) {
+    log!(logger, LogLevel::Info, "{} => {:?}, {:?}", path.display(), entry, env);
 }
 
