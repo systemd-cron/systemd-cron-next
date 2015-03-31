@@ -1,4 +1,4 @@
-use std::env::{current_exe};
+use std::env::current_exe;
 use std::fs::{OpenOptions, File};
 use std::io::{stderr, Stderr, Write};
 use std::fmt::{Arguments, format};
@@ -8,6 +8,13 @@ use libc::funcs::posix88::unistd;
 
 fn current_name() -> String {
     current_exe().ok().and_then(|p| p.file_name().map(OsStr::to_string_lossy).map(Cow::into_owned)).unwrap_or("???".to_string())
+}
+
+#[macro_export]
+macro_rules! log {
+    ($log:ident, $lvl:expr, $fmt:expr, $($args:expr),*) => {
+        $log.log_fmt($lvl, format_args!($fmt, $($args),*))
+    };
 }
 
 #[repr(u8)]
@@ -24,7 +31,6 @@ pub enum LogLevel {
 }
 
 pub trait Logger {
-    fn new() -> Self;
     fn log(&mut self, level: LogLevel, msg: &str);
     fn log_fmt(&mut self, level: LogLevel, args: Arguments) {
         self.log(level, &*format(args));
@@ -35,13 +41,17 @@ pub struct KernelLogger {
     name: String,
     kmsg: File
 }
-impl Logger for KernelLogger {
-    fn new() -> KernelLogger {
+
+impl KernelLogger {
+    pub fn new() -> KernelLogger {
         KernelLogger {
             name: current_name(),
             kmsg: OpenOptions::new().write(true).open("/dev/kmsg").unwrap()
         }
     }
+}
+
+impl Logger for KernelLogger {
     fn log(&mut self, level: LogLevel, msg: &str) {
         let data = format!("<{}>{}[{}]: {}\n", level as u8, self.name, unsafe { unistd::getpid() }, msg);
         self.kmsg.write_all(data.as_bytes()).unwrap();
@@ -53,17 +63,34 @@ pub struct ConsoleLogger {
     stderr: Stderr
 }
 
-impl Logger for ConsoleLogger {
-    fn new() -> ConsoleLogger {
+impl ConsoleLogger {
+    pub fn new() -> ConsoleLogger {
         ConsoleLogger {
             name: current_name(),
             stderr: stderr()
         }
     }
+}
+
+impl Logger for ConsoleLogger {
     #[allow(unused_variables)]
     fn log(&mut self, level: LogLevel, msg: &str) {
         writeln!(&mut self.stderr, "{}: {}", self.name, msg).unwrap();
         let _ = self.stderr.flush();
+    }
+}
+
+pub enum AnyLogger {
+    Console(ConsoleLogger),
+    Kernel(KernelLogger)
+}
+
+impl Logger for AnyLogger {
+    fn log(&mut self, level: LogLevel, msg: &str) {
+        match *self {
+            AnyLogger::Console(ref mut log) => log.log(level, msg),
+            AnyLogger::Kernel(ref mut log) => log.log(level, msg),
+        }
     }
 }
 

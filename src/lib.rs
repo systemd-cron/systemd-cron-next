@@ -19,6 +19,7 @@ pub trait Limited: Add<u8, Output=Self> + PartialOrd + Copy {
     fn max_value() -> Self;
 }
 
+#[macro_use]
 pub mod log;
 pub mod interval;
 pub mod schedule;
