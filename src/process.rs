@@ -155,12 +155,17 @@ fn generate_systemd_units(path: &Path, entry: CrontabEntry, env: &BTreeMap<Strin
 }
 
 fn linearize<T: Limited + Display>(input: &[Interval<T>]) -> String {
-    let mut output = String::new();
-    let _ = input.iter().collect::<Vec<_>>().iter().scan(&mut output, |acc, item| {
-        acc.push_str(&*item.to_string());
-        acc.push(',');
-        Some(0)
-    }).fold(0, |_, _| 0);
-    output.pop();
-    output
+    if input.len() == 1 && input[0] == Interval::Full(1) {
+        "*".to_string()
+    } else {
+        let mut output = String::new();
+        let _ = input.iter().flat_map(|v| v.iter()).collect::<BTreeSet<_>>().iter().scan(&mut output, |acc, item| {
+        //let _ = input.iter().scan(&mut output, |acc, item| {
+            acc.push_str(&*item.to_string());
+            acc.push(',');
+            Some(0)
+        }).fold(0, |_, _| 0);
+        output.pop();
+        output
+    }
 }
