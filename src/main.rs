@@ -2,8 +2,6 @@
 #![feature(fs_walk)]
 #![feature(convert)]
 
-#![allow(dead_code)] // for debug
-
 #[macro_use(log)]
 extern crate cronparse;
 
