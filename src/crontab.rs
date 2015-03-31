@@ -5,7 +5,7 @@ use std::error::{FromError, Error};
 use std::num::ParseIntError;
 use std::fmt::{self, Display, Formatter};
 
-use schedule::{Schedule, Period, ScheduleParseError, PeriodParseError};
+use schedule::{Schedule, Period, Calendar, ScheduleParseError, PeriodParseError};
 
 pub trait ToCrontabEntry : FromStr<Err=CrontabEntryParseError> {
     fn to_crontab_entry(self) -> CrontabEntry;
@@ -64,6 +64,25 @@ impl ToCrontabEntry for AnacrontabEntry {
 impl ToCrontabEntry for EnvVarEntry {
     fn to_crontab_entry(self) -> CrontabEntry {
         CrontabEntry::EnvVar(self)
+    }
+}
+
+impl CrontabEntry {
+    pub fn period<'a>(&'a self) -> Option<&'a Period> {
+        match *self {
+            CrontabEntry::Anacron(AnacrontabEntry { ref period, .. }) => Some(period),
+            CrontabEntry::User(UserCrontabEntry { sched: Schedule::Period(ref period), .. }) => Some(period),
+            CrontabEntry::System(SystemCrontabEntry { sched: Schedule::Period(ref period), .. }) => Some(period),
+            _ => None
+        }
+    }
+
+    pub fn calendar<'a>(&'a self) -> Option<&'a Calendar> {
+        match *self {
+            CrontabEntry::User(UserCrontabEntry { sched: Schedule::Calendar(ref cal), .. }) => Some(cal),
+            CrontabEntry::System(SystemCrontabEntry { sched: Schedule::Calendar(ref cal), .. }) => Some(cal),
+            _ => None
+        }
     }
 }
 

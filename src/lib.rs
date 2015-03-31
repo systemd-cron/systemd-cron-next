@@ -11,7 +11,7 @@ use std::convert::AsRef;
 use std::path::Path;
 use std::fmt::{self, Display, Formatter};
 
-pub trait Limited: Add<u8, Output=Self> + PartialOrd + Copy {
+pub trait Limited: Add<u8, Output=Self> + Ord + Copy {
     fn min_value() -> Self;
     fn max_value() -> Self;
 }

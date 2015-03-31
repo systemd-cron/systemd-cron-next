@@ -21,6 +21,7 @@ pub enum Schedule {
 pub enum Period {
     Reboot,
     Minutely,
+    Hourly,
     Midnight,
     Daily,
     Weekly,
@@ -175,6 +176,7 @@ impl FromStr for Period {
         Ok(match s {
             "@reboot" => Period::Reboot,
             "@minutely" => Period::Minutely,
+            "@hourly" => Period::Hourly,
             "@midnight" => Period::Midnight,
             "@daily" | "1" => Period::Daily,
             "@weekly" | "7" => Period::Weekly,

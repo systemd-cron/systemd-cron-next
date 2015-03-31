@@ -1,3 +1,4 @@
+#![feature(collections)]
 #![feature(path_ext)]
 #![feature(fs_walk)]
 #![feature(convert)]
