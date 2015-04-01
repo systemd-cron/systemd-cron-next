@@ -11,27 +11,28 @@ use cronparse::crontab::{SystemCrontabEntry, UserCrontabEntry};
 use cronparse::schedule::{Schedule, Period, Calendar, DayOfWeek, Month, Day, Hour, Minute};
 use cronparse::interval::Interval;
 use log::{Logger, LogLevel};
+use md5;
 
-pub fn process_crontab_dir<T: ToCrontabEntry>(dir: &str, logger: &mut Logger) {
-    let files = walk_dir(dir).and_then(|fs| fs.map(|r| r.map(|p| p.path()))
+pub fn process_crontab_dir<T: ToCrontabEntry, D: AsRef<Path>>(srcdir: &str, dstdir: D, logger: &mut Logger) {
+    let files = walk_dir(srcdir).and_then(|fs| fs.map(|r| r.map(|p| p.path()))
                                        .filter(|r| r.as_ref().map(|p| p.is_file()).unwrap_or(true))
                                        .collect::<Result<Vec<PathBuf>, _>>());
     match files {
-        Err(err) => log!(logger, LogLevel::Error, "error processing directory {}: {}", dir, err),
+        Err(err) => log!(logger, LogLevel::Error, "error processing directory {}: {}", srcdir, err),
         Ok(files) => for file in files {
-            process_crontab_file::<T, _>(file, logger as &mut Logger);
+            process_crontab_file::<T, _, _>(file, dstdir.as_ref(), logger as &mut Logger);
         }
     }
 }
 
 
-pub fn process_crontab_file<T: ToCrontabEntry, P: AsRef<Path>>(path: P, logger: &mut Logger) {
+pub fn process_crontab_file<T: ToCrontabEntry, P: AsRef<Path>, D: AsRef<Path>>(path: P, dstdir: D, logger: &mut Logger) {
     CrontabFile::<T>::new(path.as_ref()).map(|crontab| {
         let mut env = BTreeMap::new();
         for entry in crontab {
             match entry {
                 Ok(CrontabEntry::EnvVar(EnvVarEntry(name, value))) => { env.insert(name, value); },
-                Ok(data) => generate_systemd_units(path.as_ref(), data, &env, logger),
+                Ok(data) => generate_systemd_units(data, &env, path.as_ref(), dstdir.as_ref(), logger),
                 Err(err @ CrontabFileError { kind: CrontabFileErrorKind::Io(_), .. }) => log!(logger, LogLevel::Warning, "error accessing file {}: {}", path.as_ref().display(), err),
                 Err(err @ CrontabFileError { kind: CrontabFileErrorKind::Parse(_), .. }) => log!(logger, LogLevel::Warning, "skipping file {} due to parsing error: {}", path.as_ref().display(), err),
             }
@@ -42,12 +43,12 @@ pub fn process_crontab_file<T: ToCrontabEntry, P: AsRef<Path>>(path: P, logger: 
 }
 
 #[allow(non_snake_case)]
-fn generate_systemd_units(path: &Path, entry: CrontabEntry, env: &BTreeMap<String, String>, logger: &mut Logger) {
+fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, path: &Path, dstdir: &Path, logger: &mut Logger) {
     use cronparse::crontab::CrontabEntry::*;
 
     log!(logger, LogLevel::Info, "{} => {:?}, {:?}", path.display(), entry, env);
 
-    let mut PERSISTENT = env.get("PERSISTENT").and_then(|v| match &**v {
+    let mut persistent = env.get("PERSISTENT").and_then(|v| match &**v {
         "yes" | "true" | "1" => Some(true),
         "auto" | "" => None,
         _ => Some(false)
@@ -56,82 +57,89 @@ fn generate_systemd_units(path: &Path, entry: CrontabEntry, env: &BTreeMap<Strin
         _ => false
     });
 
-    let BATCH = env.get("BATCH").map(|v| match &**v {
+    let batch = env.get("BATCH").map(|v| match &**v {
         "yes" | "true" | "1" => true,
         _ => false
     }).unwrap_or(false);
 
-    let RANDOM_DELAY = env.get("RANDOM_DELAY").and_then(|v| v.parse::<u64>().ok()).unwrap_or(1);
-    let mut BOOT_DELAY = env.get("DELAY").and_then(|v| v.parse::<u64>().ok()).unwrap_or(0);
-    let START_HOURS_RANGE = env.get("START_HOURS_RANGE").and_then(|v| v.splitn(1, '-').next().and_then(|v| v.parse::<u64>().ok())).unwrap_or(0);
+    let random_delay = env.get("RANDOM_DELAY").and_then(|v| v.parse::<u64>().ok()).unwrap_or(1);
+    let mut delay = env.get("DELAY").and_then(|v| v.parse::<u64>().ok()).unwrap_or(0);
+    let hour = env.get("START_HOURS_RANGE").and_then(|v| v.splitn(1, '-').next().and_then(|v| v.parse::<u64>().ok())).unwrap_or(0);
 
     let schedule = entry.period().and_then(|period| match *period {
         Period::Reboot => {
-            PERSISTENT = false;
-            if BOOT_DELAY == 0 {
-                BOOT_DELAY = 1;
+            persistent = false;
+            if delay == 0 {
+                delay = 1;
             }
             None
         },
         Period::Minutely => {
-            PERSISTENT = false;
+            persistent = false;
             Some("@minutely".to_string())
         },
         Period::Hourly => {
-            if BOOT_DELAY == 0 {
+            if delay == 0 {
                 Some("@hourly".to_string())
             } else {
-                Some(format!("*-*-* *:{}:0", BOOT_DELAY))
+                Some(format!("*-*-* *:{}:0", delay))
             }
         },
-        Period::Midnight | Period::Daily => {
-            if BOOT_DELAY == 0 {
+        Period::Midnight => {
+            if delay == 0 {
                 Some("@daily".to_string())
             } else {
-                Some(format!("*-*-* 0:{}:0", BOOT_DELAY))
+                Some(format!("*-*-* 0:{}:0", delay))
+            }
+        },
+        Period::Daily => {
+            if delay == 0 && hour == 0 {
+                Some("@daily".to_string())
+            } else {
+                Some(format!("*-*-* {}:{}:0", hour, delay))
             }
         },
         Period::Weekly => {
-            if BOOT_DELAY == 0 {
+            if delay == 0 && hour == 0 {
                 Some("@weekly".to_string())
             } else {
-                Some(format!("Mon *-*-* 0:{}:0", BOOT_DELAY))
+                Some(format!("Mon *-*-* {}:{}:0", hour, delay))
             }
         },
         Period::Monthly => {
-            if BOOT_DELAY == 0 {
+            if delay == 0 && hour == 0 {
                 Some("@monthly".to_string())
             } else {
-                Some(format!("*-*-1 0:{}:0", BOOT_DELAY))
+                Some(format!("*-*-1 {}:{}:0", hour, delay))
             }
         },
         Period::Quaterly => {
-            if BOOT_DELAY == 0 {
+            if delay == 0 && hour == 0 {
                 Some("@quaterly".to_string())
             } else {
-                Some(format!("*-1,4,7,10-1 0:{}:0", BOOT_DELAY))
+                Some(format!("*-1,4,7,10-1 {}:{}:0", hour, delay))
             }
         },
         Period::Biannually => {
-            if BOOT_DELAY == 0 {
+            if delay == 0 && hour == 0 {
                 Some("@semi-annually".to_string())
             } else {
-                Some(format!("*-1,7-1 0:{}:0", BOOT_DELAY))
+                Some(format!("*-1,7-1 {}:{}:0", hour, delay))
             }
         },
         Period::Yearly => {
-            if BOOT_DELAY == 0 {
+            if delay == 0 && hour == 0 {
                 Some("@yearly".to_string())
             } else {
-                Some(format!("*-1-1 0:{}:0", BOOT_DELAY))
+                Some(format!("*-1-1 {}:{}:0", hour, delay))
             }
         },
         Period::Days(days) => {
             // workaround for anacrontab
             if days > 31 {
-                Some(format!("*-1/{}-1 0:{}:0", days / 30, BOOT_DELAY))
+                Some(format!("*-1/{}-1 {}:{}:0", days / 30, hour, delay))
             } else {
-                Some(format!("*-*-1/{} 0:{}:0", days, BOOT_DELAY))
+                Some(format!("*-*-1/{} {}:{}:0", days, hour, delay))
             }
         },
     }).or_else(|| entry.calendar().and_then(|cal| {
@@ -159,12 +167,10 @@ fn linearize<T: Limited + Display>(input: &[Interval<T>]) -> String {
         "*".to_string()
     } else {
         let mut output = String::new();
-        let _ = input.iter().flat_map(|v| v.iter()).collect::<BTreeSet<_>>().iter().scan(&mut output, |acc, item| {
-        //let _ = input.iter().scan(&mut output, |acc, item| {
-            acc.push_str(&*item.to_string());
-            acc.push(',');
-            Some(0)
-        }).fold(0, |_, _| 0);
+        for part in input.iter().flat_map(|v| v.iter()).collect::<BTreeSet<_>>().iter() {
+            output.push_str(&*part.to_string());
+            output.push(',');
+        }
         output.pop();
         output
     }
