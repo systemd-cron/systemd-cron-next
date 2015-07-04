@@ -3,6 +3,7 @@
 
 extern crate cronparse;
 extern crate libc;
+extern crate md5;
 
 use std::path::Path;
 use std::thread::spawn;
@@ -12,7 +13,6 @@ use cronparse::{CrontabFile, CrontabFileError, CrontabFileErrorKind};
 use cronparse::crontab::{UserCrontabEntry, SystemCrontabEntry, AnacrontabEntry, CrontabEntry, ToCrontabEntry};
 use log::{KernelLogger, ConsoleLogger, AnyLogger};
 
-mod md5;
 mod log;
 mod process;
 

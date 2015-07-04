@@ -11,7 +11,6 @@ use cronparse::crontab::{SystemCrontabEntry, UserCrontabEntry};
 use cronparse::schedule::{Schedule, Period, Calendar, DayOfWeek, Month, Day, Hour, Minute};
 use cronparse::interval::Interval;
 use log::{Logger, LogLevel};
-use md5;
 
 pub fn process_crontab_dir<T: ToCrontabEntry, D: AsRef<Path>>(srcdir: &str, dstdir: D, logger: &mut Logger) {
     let files = walk_dir(srcdir).and_then(|fs| fs.map(|r| r.map(|p| p.path()))

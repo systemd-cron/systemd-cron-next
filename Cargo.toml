@@ -9,3 +9,6 @@ authors = ["Konstantin Stepanov <me@kstep.me>"]
 
 [lib]
 name = "cronparse"
+
+[dependencies]
+md5 = "*"
