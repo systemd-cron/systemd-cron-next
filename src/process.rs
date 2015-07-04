@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::collections::{BTreeMap, BTreeSet};
 use std::slice::SliceConcatExt;
 use std::fmt::Display;
+use std::os::unix::ffi::OsStrExt;
 
 use cronparse::{CrontabFile, CrontabFileError, CrontabFileErrorKind, Limited};
 use cronparse::crontab::{EnvVarEntry, CrontabEntry, ToCrontabEntry};
@@ -17,13 +18,13 @@ fn tohex(input: &[u8]) -> String {
         match d {
             0...9 => (d + 0x30) as char,
             10...15 => (d + 0x57) as char,
-            _ => unreachable!()
+            _ => unreachable!("unexpected value: {}", d)
         }
     }
 
     let mut buf = String::with_capacity(32);
     for b in input.into_iter() {
-        buf.push(hex(b << 4));
+        buf.push(hex(b >> 4));
         buf.push(hex(b & 0xf));
     }
     buf
@@ -176,7 +177,20 @@ fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, p
                      linearize(&**mins)))
     }));
 
-    println!("schedule: {:?}", schedule);
+    let command = entry.command();
+
+    if let (Some(schedule), Some(command)) = (schedule, command) {
+        let mut md5ctx = ::md5::Context::new();
+        md5ctx.consume(path.as_os_str().as_bytes());
+        md5ctx.consume(schedule.as_bytes());
+        md5ctx.consume(command.as_bytes());
+        let md5hex = tohex(&md5ctx.compute());
+
+        let service_unit_path = dstdir.join(format!("cron-{}.service", md5hex));
+        let timer_unit_path = dstdir.join(format!("cron-{}.timer", md5hex));
+
+        println!("schedule: {:?} {:?} {:?}", md5hex, schedule, command);
+    }
 }
 
 fn linearize<T: Limited + Display>(input: &[Interval<T>]) -> String {
