@@ -1,6 +1,7 @@
 use std::str::FromStr;
 use std::fmt::{self, Display, Formatter};
-use std::error::{FromError, Error};
+use std::error::Error;
+use std::convert::From;
 use std::num::ParseIntError;
 
 use super::Limited;
@@ -23,20 +24,20 @@ pub enum IntervalParseError {
     InverseRange
 }
 
-impl FromError<ParseIntError> for IntervalParseError {
-    fn from_error(err: ParseIntError) -> IntervalParseError {
+impl From<ParseIntError> for IntervalParseError {
+    fn from(err: ParseIntError) -> IntervalParseError {
         IntervalParseError::InvalidInteger(err)
     }
 }
 
-impl FromError<MonthParseError> for IntervalParseError {
-    fn from_error(err: MonthParseError) -> IntervalParseError {
+impl From<MonthParseError> for IntervalParseError {
+    fn from(err: MonthParseError) -> IntervalParseError {
         IntervalParseError::InvalidMonth(err)
     }
 }
 
-impl FromError<DayOfWeekParseError> for IntervalParseError {
-    fn from_error(err: DayOfWeekParseError) -> IntervalParseError {
+impl From<DayOfWeekParseError> for IntervalParseError {
+    fn from(err: DayOfWeekParseError) -> IntervalParseError {
         IntervalParseError::InvalidDayOfWeek(err)
     }
 }
@@ -74,7 +75,7 @@ impl Error for IntervalParseError {
 }
 
 impl<T> FromStr for Interval<T>
-where T: Limited, T: FromStr, IntervalParseError: FromError<<T as FromStr>::Err>
+where T: Limited, T: FromStr, IntervalParseError: From<<T as FromStr>::Err>
 {
     type Err = IntervalParseError;
     fn from_str(s: &str) -> Result<Interval<T>, IntervalParseError> {
@@ -95,7 +96,7 @@ where T: Limited, T: FromStr, IntervalParseError: FromError<<T as FromStr>::Err>
         let (from, to): (T, T) = if let Some(hyphen) = range.find('-') {
             (try!(range[..hyphen].parse()), try!(range[hyphen+1..].parse()))
         } else {
-            return range.parse().map_err(FromError::from_error).map(Interval::Value);
+            return range.parse().map_err(From::from).map(Interval::Value);
         };
 
         if from > to {
@@ -186,7 +187,7 @@ impl<T: Limited> Iterator for IntervalIter<T> {
 }
 
 impl<T: Limited + FromStr> FromStr for Vec<Interval<T>>
-where T: Limited, T: FromStr, IntervalParseError: FromError<<T as FromStr>::Err>
+where T: Limited, T: FromStr, IntervalParseError: From<<T as FromStr>::Err>
 {
     type Err = IntervalParseError;
     fn from_str(s: &str) -> Result<Vec<Interval<T>>, IntervalParseError> {

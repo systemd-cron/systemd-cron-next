@@ -1,7 +1,8 @@
 use std::time::Duration;
 use std::str::FromStr;
 use std::iter::FromIterator;
-use std::error::{FromError, Error};
+use std::error::Error;
+use std::convert::From;
 use std::num::ParseIntError;
 use std::fmt::{self, Display, Formatter};
 
@@ -250,20 +251,20 @@ impl FromStr for AnacrontabEntry {
     }
 }
 
-impl FromError<ScheduleParseError> for CrontabEntryParseError {
-    fn from_error(e: ScheduleParseError) -> CrontabEntryParseError {
+impl From<ScheduleParseError> for CrontabEntryParseError {
+    fn from(e: ScheduleParseError) -> CrontabEntryParseError {
         CrontabEntryParseError::InvalidSchedule(e)
     }
 }
 
-impl FromError<UserInfoParseError> for CrontabEntryParseError {
-    fn from_error(e: UserInfoParseError) -> CrontabEntryParseError {
+impl From<UserInfoParseError> for CrontabEntryParseError {
+    fn from(e: UserInfoParseError) -> CrontabEntryParseError {
         CrontabEntryParseError::InvalidUser(e)
     }
 }
 
-impl FromError<ParseIntError> for CrontabEntryParseError {
-    fn from_error(e: ParseIntError) -> CrontabEntryParseError {
+impl From<ParseIntError> for CrontabEntryParseError {
+    fn from(e: ParseIntError) -> CrontabEntryParseError {
         CrontabEntryParseError::InvalidDelay(e)
     }
 }

@@ -6,7 +6,8 @@ use std::ops::Add;
 use std::num::{FromPrimitive, ParseIntError};
 use std::ascii::AsciiExt;
 use std::iter::{FromIterator, IntoIterator, Iterator};
-use std::error::{FromError, Error};
+use std::error::Error;
+use std::convert::From;
 
 use interval::{Interval, IntervalParseError};
 use super::Limited;
@@ -140,8 +141,8 @@ pub enum PeriodParseError {
     UnknownPeriod
 }
 
-impl FromError<ParseIntError> for PeriodParseError {
-    fn from_error(e: ParseIntError) -> PeriodParseError {
+impl From<ParseIntError> for PeriodParseError {
+    fn from(e: ParseIntError) -> PeriodParseError {
         PeriodParseError::InvalidDays(e)
     }
 }
@@ -403,14 +404,14 @@ pub enum ScheduleParseError {
     InvalidCalendar(CalendarParseError)
 }
 
-impl FromError<PeriodParseError> for ScheduleParseError {
-    fn from_error(e: PeriodParseError) -> ScheduleParseError {
+impl From<PeriodParseError> for ScheduleParseError {
+    fn from(e: PeriodParseError) -> ScheduleParseError {
         ScheduleParseError::InvalidPeriod(e)
     }
 }
 
-impl FromError<CalendarParseError> for ScheduleParseError {
-    fn from_error(e: CalendarParseError) -> ScheduleParseError {
+impl From<CalendarParseError> for ScheduleParseError {
+    fn from(e: CalendarParseError) -> ScheduleParseError {
         ScheduleParseError::InvalidCalendar(e)
     }
 }
@@ -446,9 +447,9 @@ impl FromStr for Schedule {
     type Err = ScheduleParseError;
     fn from_str(s: &str) -> Result<Schedule, ScheduleParseError> {
         if s.starts_with("@") {
-            s.parse::<Period>().map_err(FromError::from_error).map(Schedule::Period)
+            s.parse::<Period>().map_err(From::from).map(Schedule::Period)
         } else {
-            s.parse::<Calendar>().map_err(FromError::from_error).map(Schedule::Calendar)
+            s.parse::<Calendar>().map_err(From::from).map(Schedule::Calendar)
         }
     }
 }
@@ -464,7 +465,7 @@ impl<'a> FromIterator<&'a str> for Result<Schedule, ScheduleParseError> {
         if is_period {
             it.next().map(|p| p.parse().map_err(ScheduleParseError::InvalidPeriod).map(Schedule::Period)).unwrap_or(Err(ScheduleParseError::MissingSchedule))
         } else {
-            it.collect::<Result<Calendar, CalendarParseError>>().map_err(FromError::from_error).map(Schedule::Calendar)
+            it.collect::<Result<Calendar, CalendarParseError>>().map_err(From::from).map(Schedule::Calendar)
         }
     }
 }

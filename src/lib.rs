@@ -6,8 +6,8 @@ use std::ops::{Add, Deref};
 use std::fs::File;
 use std::io::{self, Lines, BufReader, BufRead};
 use std::iter::{Iterator, Enumerate};
-use std::error::{FromError, Error};
-use std::convert::AsRef;
+use std::error::Error;
+use std::convert::{AsRef, From};
 use std::path::Path;
 use std::fmt::{self, Display, Formatter};
 
@@ -61,8 +61,8 @@ pub struct CrontabFileError {
     pub kind: CrontabFileErrorKind
 }
 
-impl FromError<io::Error> for CrontabFileError {
-    fn from_error(err: io::Error) -> CrontabFileError {
+impl From<io::Error> for CrontabFileError {
+    fn from(err: io::Error) -> CrontabFileError {
         CrontabFileError {
             lineno: 0,
             line: None,
@@ -71,8 +71,8 @@ impl FromError<io::Error> for CrontabFileError {
     }
 }
 
-impl FromError<crontab::CrontabEntryParseError> for CrontabFileError {
-    fn from_error(err: crontab::CrontabEntryParseError) -> CrontabFileError {
+impl From<crontab::CrontabEntryParseError> for CrontabFileError {
+    fn from(err: crontab::CrontabEntryParseError) -> CrontabFileError {
         CrontabFileError {
             lineno: 0,
             line: None,
@@ -113,7 +113,7 @@ impl<T: crontab::ToCrontabEntry> Iterator for CrontabFile<T> {
                     return Some(match line.parse::<crontab::EnvVarEntry>() {
                         Ok(envvar) => Ok(crontab::CrontabEntry::EnvVar(envvar)),
                         _ => line.parse::<T>().map_err(|e| {
-                            let mut err: CrontabFileError = FromError::from_error(e);
+                            let mut err: CrontabFileError = From::from(e);
                             err.lineno = lineno + 1;
                             err.line = Some(line.to_string());
                             err
@@ -121,7 +121,7 @@ impl<T: crontab::ToCrontabEntry> Iterator for CrontabFile<T> {
                     });
                 },
                 Some((lineno, Err(e))) => {
-                    let mut err: CrontabFileError = FromError::from_error(e);
+                    let mut err: CrontabFileError = From::from(e);
                     err.lineno = lineno + 1;
                     return Some(Err(err));
                 },
