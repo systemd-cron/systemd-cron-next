@@ -1,7 +1,3 @@
-#![feature(core)]
-#![feature(convert)]
-#![feature(std_misc)]
-
 use std::ops::{Add, Deref};
 use std::fs::File;
 use std::io::{self, Lines, BufReader, BufRead};

@@ -1,13 +1,6 @@
-#![feature(collections)]
-#![feature(path_ext)]
 #![feature(fs_walk)]
-#![feature(convert)]
-#![feature(libc)]
-#![feature(core)]
-#![feature(step_by)]
-#![feature(rustc_private)]
+#![feature(path_ext)]
 
-extern crate serialize;
 extern crate cronparse;
 extern crate libc;
 
@@ -15,7 +8,8 @@ use std::path::Path;
 use std::thread::spawn;
 use std::env;
 
-use cronparse::crontab::{UserCrontabEntry, SystemCrontabEntry, AnacrontabEntry};
+use cronparse::{CrontabFile, CrontabFileError, CrontabFileErrorKind};
+use cronparse::crontab::{UserCrontabEntry, SystemCrontabEntry, AnacrontabEntry, CrontabEntry, ToCrontabEntry};
 use log::{KernelLogger, ConsoleLogger, AnyLogger};
 
 mod md5;

@@ -16,6 +16,9 @@ pub enum Interval<T: Limited> {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct Intervals<T: Limited>(pub Vec<Interval<T>>);
+
+#[derive(Debug, PartialEq)]
 pub enum IntervalParseError {
     ZeroStep,
     InvalidInteger(ParseIntError),
@@ -186,11 +189,11 @@ impl<T: Limited> Iterator for IntervalIter<T> {
     }
 }
 
-impl<T: Limited + FromStr> FromStr for Vec<Interval<T>>
+impl<T: Limited + FromStr> FromStr for Intervals<T>
 where T: Limited, T: FromStr, IntervalParseError: From<<T as FromStr>::Err>
 {
     type Err = IntervalParseError;
-    fn from_str(s: &str) -> Result<Vec<Interval<T>>, IntervalParseError> {
-        s.split(',').map(|v| v.parse::<Interval<T>>()).collect()
+    fn from_str(s: &str) -> Result<Intervals<T>, IntervalParseError> {
+        s.split(',').map(|v| v.parse::<Interval<T>>()).collect::<Result<Vec<_>, _>>().map(Intervals)
     }
 }

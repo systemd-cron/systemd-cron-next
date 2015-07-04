@@ -1,4 +1,3 @@
-use std::time::Duration;
 use std::str::FromStr;
 use std::iter::FromIterator;
 use std::error::Error;
@@ -39,7 +38,7 @@ pub struct SystemCrontabEntry {
 #[derive(Debug, PartialEq)]
 pub struct AnacrontabEntry {
     pub period: Period,
-    pub delay: Duration,
+    pub delay: u32,
     pub jobid: String,
     pub cmd: String
 }
@@ -216,7 +215,7 @@ impl FromStr for UserCrontabEntry {
         let seps = [' ', '\t'];
         let mut splits = s.split(&seps[..]).filter(|v| *v != "");
         Ok(UserCrontabEntry {
-            sched: try!(<Result<Schedule, ScheduleParseError>>::from_iter(&mut splits)),
+            sched: try!(Schedule::from_iter(&mut splits)),
             cmd: splits.collect::<Vec<&str>>().connect(" ")
         })
     }
@@ -229,7 +228,7 @@ impl FromStr for SystemCrontabEntry {
         let seps = [' ', '\t'];
         let mut splits = s.split(&seps[..]).filter(|v| *v != "");
         Ok(SystemCrontabEntry {
-            sched: try!(<Result<Schedule, ScheduleParseError>>::from_iter(&mut splits)),
+            sched: try!(Schedule::from_iter(&mut splits)),
             user: try!(splits.next().ok_or(UserInfoParseError).and_then(FromStr::from_str)),
             cmd: splits.collect::<Vec<&str>>().connect(" ")
         })
@@ -244,7 +243,7 @@ impl FromStr for AnacrontabEntry {
         let mut splits = s.split(&seps[..]).filter(|v| *v != "");
         Ok(AnacrontabEntry {
             period: try!(splits.next().map(|v| v.parse().map_err(CrontabEntryParseError::InvalidPeriod)).unwrap_or(Err(CrontabEntryParseError::MissingPeriod))),
-            delay: try!(splits.next().map(|v| v.parse().map_err(CrontabEntryParseError::InvalidDelay).map(Duration::minutes)).unwrap_or(Err(CrontabEntryParseError::MissingDelay))),
+            delay: try!(splits.next().map(|v| v.parse().map_err(CrontabEntryParseError::InvalidDelay)).unwrap_or(Err(CrontabEntryParseError::MissingDelay))),
             jobid: try!(splits.next().map(ToString::to_string).ok_or(CrontabEntryParseError::MissingJobId)),
             cmd: splits.collect::<Vec<&str>>().connect(" ")
         })

@@ -3,13 +3,13 @@
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 use std::ops::Add;
-use std::num::{FromPrimitive, ParseIntError};
+use std::num::ParseIntError;
 use std::ascii::AsciiExt;
 use std::iter::{FromIterator, IntoIterator, Iterator};
 use std::error::Error;
 use std::convert::From;
 
-use interval::{Interval, IntervalParseError};
+use interval::{Intervals, IntervalParseError};
 use super::Limited;
 
 #[derive(Debug, PartialEq)]
@@ -42,11 +42,11 @@ pub struct Calendar {
     pub dows: DaysOfWeek,
 }
 
-pub type Minutes = Vec<Interval<Minute>>;
-pub type Hours = Vec<Interval<Hour>>;
-pub type Days = Vec<Interval<Day>>;
-pub type Months = Vec<Interval<Month>>;
-pub type DaysOfWeek = Vec<Interval<DayOfWeek>>;
+pub type Minutes = Intervals<Minute>;
+pub type Hours = Intervals<Hour>;
+pub type Days = Intervals<Day>;
+pub type Months = Intervals<Month>;
+pub type DaysOfWeek = Intervals<DayOfWeek>;
 
 macro_rules! parse_cron_rec_field {
     ($iter:expr, $miss:ident, $err:ident) => {
@@ -118,19 +118,18 @@ impl FromStr for Calendar {
     type Err = CalendarParseError;
     fn from_str(s: &str) -> Result<Calendar, CalendarParseError> {
         let seps = [' ', '\t'];
-        s.split(&seps[..]).filter(|v| *v != "").collect::<Result<Calendar, CalendarParseError>>()
+        Calendar::from_iter(s.split(&seps[..]).filter(|v| *v != ""))
     }
 }
 
-impl<'a> FromIterator<&'a str> for Result<Calendar, CalendarParseError> {
-    fn from_iter<T>(iter: T) -> Result<Calendar, CalendarParseError> where T: IntoIterator<Item=&'a str> {
-        let mut it = iter.into_iter();
+impl Calendar {
+    pub fn from_iter<'a, I>(mut parts: I) -> Result<Calendar, CalendarParseError> where I: Iterator<Item=&'a str> {
         Ok(Calendar {
-            mins: parse_cron_rec_field!(it, MissingMinutes, Minutes),
-            hrs: parse_cron_rec_field!(it, MissingHours, Hours),
-            days: parse_cron_rec_field!(it, MissingDays, Days),
-            mons: parse_cron_rec_field!(it, MissingMonths, Months),
-            dows: parse_cron_rec_field!(it, MissingDaysOfWeek, DaysOfWeek)
+            mins: parse_cron_rec_field!(parts, MissingMinutes, Minutes),
+            hrs: parse_cron_rec_field!(parts, MissingHours, Hours),
+            days: parse_cron_rec_field!(parts, MissingDays, Days),
+            mons: parse_cron_rec_field!(parts, MissingMonths, Months),
+            dows: parse_cron_rec_field!(parts, MissingDaysOfWeek, DaysOfWeek)
         })
     }
 }
@@ -224,19 +223,19 @@ macro_rules! limited {
     }
 }
 
-#[derive(Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Minute(pub u8);
 limited!(Minute, min=0, max=59);
 
-#[derive(Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Hour(pub u8);
 limited!(Hour, min=0, max=23);
 
-#[derive(Debug, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Day(pub u8);
 limited!(Day, min=1, max=31);
 
-#[derive(Debug, Copy, FromPrimitive, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum Month {
     January = 1,
@@ -251,6 +250,14 @@ pub enum Month {
     October = 10,
     November = 11,
     December = 12
+}
+
+impl From<u8> for Month {
+    fn from(v: u8) -> Month {
+        if v < 1 { Month::January }
+        else if v > 12 { Month::December }
+        else { unsafe { ::std::mem::transmute(v) } }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -272,7 +279,7 @@ impl FromStr for Month {
     fn from_str(s: &str) -> Result<Month, MonthParseError> {
         s.parse::<u8>()
             .map_err(|_| MonthParseError)
-            .and_then(|v| Month::from_u8(v).ok_or(MonthParseError))
+            .map(Month::from)
             .or_else(|_| match &*s[..3].to_ascii_lowercase() {
                 "jan" => Ok(Month::January),
                 "feb" => Ok(Month::February),
@@ -318,14 +325,11 @@ impl Limited for Month {
 impl Add<u8> for Month {
     type Output = Month;
     fn add(self, rhs: u8) -> Month {
-        let val = self as u8 + rhs;
-        if val < 1 { Month::January }
-        else if val > 12 { Month::December }
-        else { FromPrimitive::from_u8(val).unwrap() }
+        Month::from(self as u8 + rhs)
     }
 }
 
-#[derive(Debug, Copy, FromPrimitive, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum DayOfWeek {
     Sunday = 0,
@@ -339,6 +343,12 @@ pub enum DayOfWeek {
 impl Limited for DayOfWeek {
     fn min_value() -> DayOfWeek { DayOfWeek::Sunday }
     fn max_value() -> DayOfWeek { DayOfWeek::Saturday }
+}
+
+impl From<u8> for DayOfWeek {
+    fn from(v: u8) -> DayOfWeek {
+        unsafe { ::std::mem::transmute(v % 7) }
+    }
 }
 
 impl Display for DayOfWeek {
@@ -374,7 +384,7 @@ impl FromStr for DayOfWeek {
     fn from_str(s: &str) -> Result<DayOfWeek, DayOfWeekParseError> {
         s.parse::<u8>()
             .map_err(|_| DayOfWeekParseError)
-            .and_then(|v| DayOfWeek::from_u8(v % 7).ok_or(DayOfWeekParseError))
+            .map(DayOfWeek::from)
             .or_else(|_| match &*s[..3].to_ascii_lowercase() {
                 "sun" => Ok(DayOfWeek::Sunday),
                 "mon" => Ok(DayOfWeek::Monday),
@@ -393,7 +403,7 @@ impl Add<u8> for DayOfWeek {
     fn add(self, rhs: u8) -> DayOfWeek {
         let val = self as u8 + rhs;
         if val > 6 { DayOfWeek::Saturday }
-        else { FromPrimitive::from_u8(val).unwrap() }
+        else { unsafe{ ::std::mem::transmute(val) } }
     }
 }
 
@@ -454,8 +464,8 @@ impl FromStr for Schedule {
     }
 }
 
-impl<'a> FromIterator<&'a str> for Result<Schedule, ScheduleParseError> {
-    fn from_iter<T>(iter: T) -> Result<Schedule, ScheduleParseError> where T: IntoIterator<Item=&'a str> {
+impl Schedule {
+    pub fn from_iter<'a, I>(iter: I) -> Result<Schedule, ScheduleParseError> where I: Iterator<Item=&'a str> {
         let mut it = iter.into_iter().peekable();
         let is_period = match it.peek() {
             None => return Err(ScheduleParseError::MissingSchedule),
@@ -465,9 +475,8 @@ impl<'a> FromIterator<&'a str> for Result<Schedule, ScheduleParseError> {
         if is_period {
             it.next().map(|p| p.parse().map_err(ScheduleParseError::InvalidPeriod).map(Schedule::Period)).unwrap_or(Err(ScheduleParseError::MissingSchedule))
         } else {
-            it.collect::<Result<Calendar, CalendarParseError>>().map_err(From::from).map(Schedule::Calendar)
+            Calendar::from_iter(it).map_err(From::from).map(Schedule::Calendar)
         }
     }
 }
-
 
