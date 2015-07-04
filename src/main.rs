@@ -5,15 +5,17 @@ extern crate cronparse;
 extern crate libc;
 extern crate md5;
 
+#[macro_use]
+extern crate log;
+extern crate kernlog;
+
 use std::path::Path;
 use std::thread::spawn;
 use std::env;
 
 use cronparse::{CrontabFile, CrontabFileError, CrontabFileErrorKind};
 use cronparse::crontab::{UserCrontabEntry, SystemCrontabEntry, AnacrontabEntry, CrontabEntry, ToCrontabEntry};
-use log::{KernelLogger, ConsoleLogger, AnyLogger};
 
-mod log;
 mod process;
 
 static USERS_CRONTAB_DIR: &'static str = "/var/spool/cron";  // UserCrontabEntry
@@ -23,14 +25,6 @@ static ANACRONTAB_FILE: &'static str = "/etc/anacrontab";  // AnacrontabEntry
 #[inline]
 fn is_run_by_systemd() -> bool {
     env::args().len() >= 3
-}
-
-fn get_logger() -> AnyLogger {
-    if is_run_by_systemd() {
-        AnyLogger::Kernel(KernelLogger::new())
-    } else {
-        AnyLogger::Console(ConsoleLogger::new())
-    }
 }
 
 fn main() {
@@ -43,13 +37,13 @@ fn main() {
     };
 
     let s = dest_dir.clone();
-    let user_thread = spawn(|| process::process_crontab_dir::<UserCrontabEntry, _>(USERS_CRONTAB_DIR, s, &mut get_logger()));
+    let user_thread = spawn(|| process::process_crontab_dir::<UserCrontabEntry, _>(USERS_CRONTAB_DIR, s));
 
     let s = dest_dir.clone();
-    let system_thread = spawn(|| process::process_crontab_dir::<SystemCrontabEntry, _>(SYSTEM_CRONTAB_DIR, s, &mut get_logger()));
+    let system_thread = spawn(|| process::process_crontab_dir::<SystemCrontabEntry, _>(SYSTEM_CRONTAB_DIR, s));
 
     let s = dest_dir.clone();
-    let anacron_thread = spawn(|| process::process_crontab_file::<AnacrontabEntry, _, _>(ANACRONTAB_FILE, s, &mut get_logger()));
+    let anacron_thread = spawn(|| process::process_crontab_file::<AnacrontabEntry, _, _>(ANACRONTAB_FILE, s));
 
     let _ = user_thread.join();
     let _ = system_thread.join();

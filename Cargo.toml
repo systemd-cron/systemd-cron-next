@@ -12,3 +12,9 @@ name = "cronparse"
 
 [dependencies]
 md5 = "*"
+log = "*"
+
+[dependencies.kernlog]
+version = "*"
+features = ["nightly"]
+path = "/home/kstep/git/rust/kernlog"

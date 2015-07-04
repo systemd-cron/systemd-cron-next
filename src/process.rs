@@ -5,47 +5,49 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::slice::SliceConcatExt;
 use std::fmt::Display;
 
+use kernlog;
+
 use cronparse::{CrontabFile, CrontabFileError, CrontabFileErrorKind, Limited};
 use cronparse::crontab::{EnvVarEntry, CrontabEntry, ToCrontabEntry};
 use cronparse::crontab::{SystemCrontabEntry, UserCrontabEntry};
 use cronparse::schedule::{Schedule, Period, Calendar, DayOfWeek, Month, Day, Hour, Minute};
 use cronparse::interval::Interval;
-use log::{Logger, LogLevel};
 
-pub fn process_crontab_dir<T: ToCrontabEntry, D: AsRef<Path>>(srcdir: &str, dstdir: D, logger: &mut Logger) {
+pub fn process_crontab_dir<T: ToCrontabEntry, D: AsRef<Path>>(srcdir: &str, dstdir: D) {
+    kernlog::init().unwrap();
     let files = walk_dir(srcdir).and_then(|fs| fs.map(|r| r.map(|p| p.path()))
                                        .filter(|r| r.as_ref().map(|p| p.is_file()).unwrap_or(true))
                                        .collect::<Result<Vec<PathBuf>, _>>());
     match files {
-        Err(err) => log!(logger, LogLevel::Error, "error processing directory {}: {}", srcdir, err),
+        Err(err) => error!("error processing directory {}: {}", srcdir, err),
         Ok(files) => for file in files {
-            process_crontab_file::<T, _, _>(file, dstdir.as_ref(), logger as &mut Logger);
+            process_crontab_file::<T, _, _>(file, dstdir.as_ref());
         }
     }
 }
 
 
-pub fn process_crontab_file<T: ToCrontabEntry, P: AsRef<Path>, D: AsRef<Path>>(path: P, dstdir: D, logger: &mut Logger) {
+pub fn process_crontab_file<T: ToCrontabEntry, P: AsRef<Path>, D: AsRef<Path>>(path: P, dstdir: D) {
     CrontabFile::<T>::new(path.as_ref()).map(|crontab| {
         let mut env = BTreeMap::new();
         for entry in crontab {
             match entry {
                 Ok(CrontabEntry::EnvVar(EnvVarEntry(name, value))) => { env.insert(name, value); },
-                Ok(data) => generate_systemd_units(data, &env, path.as_ref(), dstdir.as_ref(), logger),
-                Err(err @ CrontabFileError { kind: CrontabFileErrorKind::Io(_), .. }) => log!(logger, LogLevel::Warning, "error accessing file {}: {}", path.as_ref().display(), err),
-                Err(err @ CrontabFileError { kind: CrontabFileErrorKind::Parse(_), .. }) => log!(logger, LogLevel::Warning, "skipping file {} due to parsing error: {}", path.as_ref().display(), err),
+                Ok(data) => generate_systemd_units(data, &env, path.as_ref(), dstdir.as_ref()),
+                Err(err @ CrontabFileError { kind: CrontabFileErrorKind::Io(_), .. }) => warn!("error accessing file {}: {}", path.as_ref().display(), err),
+                Err(err @ CrontabFileError { kind: CrontabFileErrorKind::Parse(_), .. }) => warn!("skipping file {} due to parsing error: {}", path.as_ref().display(), err),
             }
         }
     }).unwrap_or_else(|err| {
-        log!(logger, LogLevel::Error, "error parsing file {}: {}", path.as_ref().display(), err);
+        error!("error parsing file {}: {}", path.as_ref().display(), err);
     });
 }
 
 #[allow(non_snake_case)]
-fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, path: &Path, dstdir: &Path, logger: &mut Logger) {
+fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, path: &Path, dstdir: &Path) {
     use cronparse::crontab::CrontabEntry::*;
 
-    log!(logger, LogLevel::Info, "{} => {:?}, {:?}", path.display(), entry, env);
+    info!("{} => {:?}, {:?}", path.display(), entry, env);
 
     let mut persistent = env.get("PERSISTENT").and_then(|v| match &**v {
         "yes" | "true" | "1" => Some(true),
