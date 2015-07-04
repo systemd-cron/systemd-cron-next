@@ -5,8 +5,6 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::slice::SliceConcatExt;
 use std::fmt::Display;
 
-use kernlog;
-
 use cronparse::{CrontabFile, CrontabFileError, CrontabFileErrorKind, Limited};
 use cronparse::crontab::{EnvVarEntry, CrontabEntry, ToCrontabEntry};
 use cronparse::crontab::{SystemCrontabEntry, UserCrontabEntry};
@@ -14,7 +12,6 @@ use cronparse::schedule::{Schedule, Period, Calendar, DayOfWeek, Month, Day, Hou
 use cronparse::interval::Interval;
 
 pub fn process_crontab_dir<T: ToCrontabEntry, D: AsRef<Path>>(srcdir: &str, dstdir: D) {
-    kernlog::init().unwrap();
     let files = walk_dir(srcdir).and_then(|fs| fs.map(|r| r.map(|p| p.path()))
                                        .filter(|r| r.as_ref().map(|p| p.is_file()).unwrap_or(true))
                                        .collect::<Result<Vec<PathBuf>, _>>());
