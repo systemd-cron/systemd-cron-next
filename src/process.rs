@@ -11,6 +11,25 @@ use cronparse::crontab::{SystemCrontabEntry, UserCrontabEntry};
 use cronparse::schedule::{Schedule, Period, Calendar, DayOfWeek, Month, Day, Hour, Minute};
 use cronparse::interval::Interval;
 
+fn tohex(input: &[u8]) -> String {
+    #[inline]
+    fn hex(d: u8) -> char {
+        match d {
+            0...9 => (d + 0x30) as char,
+            10...15 => (d + 0x57) as char,
+            _ => unreachable!()
+        }
+    }
+
+    let mut buf = String::with_capacity(32);
+    for b in input.into_iter() {
+        buf.push(hex(b << 4));
+        buf.push(hex(b & 0xf));
+    }
+    buf
+}
+
+
 pub fn process_crontab_dir<T: ToCrontabEntry, D: AsRef<Path>>(srcdir: &str, dstdir: D) {
     let files = walk_dir(srcdir).and_then(|fs| fs.map(|r| r.map(|p| p.path()))
                                        .filter(|r| r.as_ref().map(|p| p.is_file()).unwrap_or(true))
