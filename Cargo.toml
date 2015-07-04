@@ -7,12 +7,10 @@ repository = "https://github.com/rust/systemd-crontab-generator"
 license = "MIT"
 authors = ["Konstantin Stepanov <me@kstep.me>"]
 
-[lib]
-name = "cronparse"
-
 [dependencies]
 md5 = "*"
 log = "*"
+cronparse = "*"
 
 [dependencies.kernlog]
 version = "*"
