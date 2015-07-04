@@ -2,14 +2,20 @@
 name = "systemd-crontab-generator"
 version = "0.1.0"
 dependencies = [
- "kernlog 0.1.1",
+ "cronparse 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "kernlog 0.1.2",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "md5 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "md5 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
+name = "cronparse"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "kernlog"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -29,6 +35,6 @@ dependencies = [
 
 [[package]]
 name = "md5"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
