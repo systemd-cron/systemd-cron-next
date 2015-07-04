@@ -3,6 +3,7 @@ use std::fmt::{self, Display, Formatter};
 use std::error::Error;
 use std::convert::From;
 use std::num::ParseIntError;
+use std::ops::Deref;
 
 use super::Limited;
 use schedule::{MonthParseError, DayOfWeekParseError};
@@ -17,6 +18,13 @@ pub enum Interval<T: Limited> {
 
 #[derive(Debug, PartialEq)]
 pub struct Intervals<T: Limited>(pub Vec<Interval<T>>);
+
+impl<T: Limited> Deref for Intervals<T> {
+    type Target = [Interval<T>];
+    fn deref(&self) -> &[Interval<T>] {
+        &*self.0
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub enum IntervalParseError {

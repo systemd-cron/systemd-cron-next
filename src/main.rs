@@ -1,5 +1,7 @@
 #![feature(fs_walk)]
 #![feature(path_ext)]
+#![feature(libc)]
+#![feature(slice_concat_ext)]
 
 extern crate cronparse;
 extern crate libc;
