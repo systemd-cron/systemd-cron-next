@@ -1,6 +1,6 @@
 [root]
 name = "systemd-crontab-generator"
-version = "0.1.0"
+version = "0.9.0"
 dependencies = [
  "cronparse 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernlog 0.1.2",
