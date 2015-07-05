@@ -23,11 +23,6 @@ static USERS_CRONTAB_DIR: &'static str = "/var/spool/cron";  // UserCrontabEntry
 static SYSTEM_CRONTAB_DIR: &'static str = "/etc/cron.d";  // SystemCrontabEntry
 static ANACRONTAB_FILE: &'static str = "/etc/anacrontab";  // AnacrontabEntry
 
-#[inline]
-fn is_run_by_systemd() -> bool {
-    env::args().len() >= 3
-}
-
 fn main() {
     kernlog::init().unwrap();
 
