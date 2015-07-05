@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Display;
 use std::os::unix::ffi::OsStrExt;
-use std::os::unix::fs::symlink;
+use std::os::unix::fs::{symlink, MetadataExt};
 use std::io::Write;
 
 use cronparse::{CrontabFile, CrontabFileError, CrontabFileErrorKind, Limited};
@@ -75,6 +75,8 @@ fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, p
     use cronparse::crontab::CrontabEntry::*;
 
     info!("generating units for {}: {:?}, {:?}", path.display(), entry, env);
+
+    let owner = try_!(path.metadata()).uid();
 
     let mut persistent = env.get("PERSISTENT").and_then(|v| match &**v {
         "yes" | "true" | "1" => Some(true),
@@ -259,7 +261,10 @@ ExecStart={command}"###,
 
             if let Some(user) = entry.user() {
                 try_!(writeln!(service_unit_file, "User={}", user));
+            } else if owner != 0 {
+                try_!(writeln!(service_unit_file, "User={}", owner));
             }
+
             if let Some(group) = entry.group() {
                 try_!(writeln!(service_unit_file, "Group={}", group));
             }
