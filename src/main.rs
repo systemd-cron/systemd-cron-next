@@ -15,6 +15,7 @@ use std::env;
 
 use cronparse::crontab::{UserCrontabEntry, SystemCrontabEntry, AnacrontabEntry};
 
+mod generate;
 mod process;
 
 static USERS_CRONTAB_DIR: &'static str = "/var/spool/cron";  // UserCrontabEntry
