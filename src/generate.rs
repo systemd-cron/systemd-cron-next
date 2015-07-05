@@ -25,7 +25,7 @@ macro_rules! try_ {
 pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, path: &Path, dstdir: &Path) {
     use cronparse::crontab::CrontabEntry::*;
 
-    info!("generating units for {}: {:?}, {:?}", path.display(), entry, env);
+    info!("generating units for {}: \"{}\", {:?}", path.display(), entry, env);
 
     let owner = try_!(path.metadata()).uid();
 
