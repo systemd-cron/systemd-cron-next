@@ -13,7 +13,7 @@ fn main() {
     let delay = match env::args().nth(1).and_then(|s| s.parse::<f32>().ok()) {
         Some(d) => 60.0 * d,
         None => {
-            println!("Usage: boot_delay <minutes>");
+            println!("Usage: boot-delay <minutes>");
             return;
         }
     };
