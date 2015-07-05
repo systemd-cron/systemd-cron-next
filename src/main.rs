@@ -1,7 +1,6 @@
 #![feature(fs_walk)]
 #![feature(path_ext)]
 #![feature(libc)]
-#![feature(slice_concat_ext)]
 
 extern crate cronparse;
 extern crate libc;
@@ -11,12 +10,10 @@ extern crate md5;
 extern crate log;
 extern crate kernlog;
 
-use std::path::Path;
 use std::thread::spawn;
 use std::env;
 
-use cronparse::{CrontabFile, CrontabFileError, CrontabFileErrorKind};
-use cronparse::crontab::{UserCrontabEntry, SystemCrontabEntry, AnacrontabEntry, CrontabEntry, ToCrontabEntry};
+use cronparse::crontab::{UserCrontabEntry, SystemCrontabEntry, AnacrontabEntry};
 
 mod process;
 

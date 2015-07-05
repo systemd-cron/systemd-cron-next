@@ -2,7 +2,6 @@ use std::convert::AsRef;
 use std::fs::{walk_dir, PathExt, File};
 use std::path::{Path, PathBuf};
 use std::collections::{BTreeMap, BTreeSet};
-use std::slice::SliceConcatExt;
 use std::fmt::Display;
 use std::os::unix::ffi::OsStrExt;
 use std::io::Write;
@@ -10,7 +9,7 @@ use std::io::Write;
 use cronparse::{CrontabFile, CrontabFileError, CrontabFileErrorKind, Limited};
 use cronparse::crontab::{EnvVarEntry, CrontabEntry, ToCrontabEntry};
 use cronparse::crontab::{SystemCrontabEntry, UserCrontabEntry};
-use cronparse::schedule::{Schedule, Period, Calendar, DayOfWeek, Month, Day, Hour, Minute};
+use cronparse::schedule::{Schedule, Period, Calendar};
 use cronparse::interval::Interval;
 
 fn tohex(input: &[u8]) -> String {
@@ -59,6 +58,15 @@ pub fn process_crontab_file<T: ToCrontabEntry, P: AsRef<Path>, D: AsRef<Path>>(p
     }).unwrap_or_else(|err| {
         error!("error parsing file {}: {}", path.as_ref().display(), err);
     });
+}
+
+macro_rules! try_ {
+    ($exp:expr) => {
+        match $exp {
+            Ok(value) => value,
+            Err(err) => { error!("{}", err); return; }
+        }
+    }
 }
 
 #[allow(non_snake_case)]
@@ -178,8 +186,6 @@ fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, p
                      linearize(&**mins)))
     }));
 
-    let command = entry.command();
-
     if let Some(command) = entry.command() {
         let mut md5ctx = ::md5::Context::new();
         md5ctx.consume(path.as_os_str().as_bytes());
@@ -192,13 +198,11 @@ fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, p
         let service_unit_path = dstdir.join(format!("cronjob-{}.service", md5hex));
         let timer_unit_path = dstdir.join(format!("cronjob-{}.timer", md5hex));
 
-        println!("schedule: {:?} {:?} {:?}", md5hex, schedule, command);
-        println!("{:?} {:?}", service_unit_path, timer_unit_path);
-
+        debug!("generating timer {:?} from {:?}", timer_unit_path, path);
         {
-            let mut timer_unit_file = File::create(timer_unit_path).unwrap();
+            let mut timer_unit_file = try_!(File::create(timer_unit_path));
 
-            writeln!(timer_unit_file, r###"[Unit]
+            try_!(writeln!(timer_unit_file, r###"[Unit]
 Description=[Timer] "{entry}"
 Documentation=man:systemd-crontab-generator(8)
 PartOf=cron.target
@@ -213,23 +217,24 @@ Persistent={persistent}"###,
                 source_crontab_path = path.display(),
                 service_unit_path = service_unit_path.display(),
                 persistent = persistent,
-                );
+                ));
 
             if let Some(schedule) = schedule {
-                writeln!(timer_unit_file, "OnCalendar={}", schedule);
+                try_!(writeln!(timer_unit_file, "OnCalendar={}", schedule));
             } else {
-                writeln!(timer_unit_file, "OnBootSec={}m", delay);
+                try_!(writeln!(timer_unit_file, "OnBootSec={}m", delay));
             }
 
             if random_delay != 1 {
-                writeln!(timer_unit_file, "AccuracySec={}m", random_delay);
+                try_!(writeln!(timer_unit_file, "AccuracySec={}m", random_delay));
             }
         }
 
+        debug!("generating service {:?} from {:?}", service_unit_path, path);
         {
-            let mut service_unit_file = File::create(service_unit_path).unwrap();
+            let mut service_unit_file = try_!(File::create(service_unit_path));
 
-            writeln!(service_unit_file, r###"[Unit]
+            try_!(writeln!(service_unit_file, r###"[Unit]
 Description=[Cron] "{entry}"
 Documentation=man:systemd-crontab-generator(8)
 RefuseManualStart=true
@@ -243,25 +248,25 @@ ExecStart={command}"###,
                 entry = entry,
                 source_crontab_path = path.display(),
                 command = command,
-                );
+                ));
 
             if let Some(user) = entry.user() {
-                writeln!(service_unit_file, "User={}", user);
+                try_!(writeln!(service_unit_file, "User={}", user));
             }
             if let Some(group) = entry.group() {
-                writeln!(service_unit_file, "Group={}", group);
+                try_!(writeln!(service_unit_file, "Group={}", group));
             }
             if batch {
-                writeln!(service_unit_file, "CPUSchedulingPolicy=idle");
-                writeln!(service_unit_file, "IOSchedulingClass=idle");
+                try_!(writeln!(service_unit_file, "CPUSchedulingPolicy=idle"));
+                try_!(writeln!(service_unit_file, "IOSchedulingClass=idle"));
             }
 
             if !env.is_empty() {
-                write!(service_unit_file, "Environment=");
+                try_!(write!(service_unit_file, "Environment="));
                 for (name, value) in env.iter() {
-                    write!(service_unit_file, r#""{}={}""#, name, value);
+                    try_!(write!(service_unit_file, r#""{}={}""#, name, value));
                 }
-                write!(service_unit_file, "\n");
+                try_!(write!(service_unit_file, "\n"));
             }
         }
     }
