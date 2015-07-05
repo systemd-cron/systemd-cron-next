@@ -1,9 +1,10 @@
 use std::convert::AsRef;
-use std::fs::{walk_dir, PathExt, File};
+use std::fs::{walk_dir, PathExt, File, create_dir_all};
 use std::path::{Path, PathBuf};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Display;
 use std::os::unix::ffi::OsStrExt;
+use std::os::unix::fs::symlink;
 use std::io::Write;
 
 use cronparse::{CrontabFile, CrontabFileError, CrontabFileErrorKind, Limited};
@@ -73,7 +74,7 @@ macro_rules! try_ {
 fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, path: &Path, dstdir: &Path) {
     use cronparse::crontab::CrontabEntry::*;
 
-    info!("{} => {:?}, {:?}", path.display(), entry, env);
+    info!("generating units for {}: {:?}, {:?}", path.display(), entry, env);
 
     let mut persistent = env.get("PERSISTENT").and_then(|v| match &**v {
         "yes" | "true" | "1" => Some(true),
@@ -195,12 +196,17 @@ fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, p
         md5ctx.consume(command.as_bytes());
         let md5hex = tohex(&md5ctx.compute());
 
-        let service_unit_path = dstdir.join(format!("cronjob-{}.service", md5hex));
-        let timer_unit_path = dstdir.join(format!("cronjob-{}.timer", md5hex));
+        let service_unit_name = format!("cronjob-{}.service", md5hex);
+        let timer_unit_name = format!("cronjob-{}.timer", md5hex);
+
+        let service_unit_path = dstdir.join(service_unit_name);
+        let timer_unit_path = dstdir.join(&timer_unit_name);
+        let cron_target_wants_path = dstdir.join("cron.target.wants");
+        try_!(create_dir_all(&cron_target_wants_path));
 
         debug!("generating timer {:?} from {:?}", timer_unit_path, path);
         {
-            let mut timer_unit_file = try_!(File::create(timer_unit_path));
+            let mut timer_unit_file = try_!(File::create(&timer_unit_path));
 
             try_!(writeln!(timer_unit_file, r###"[Unit]
 Description=[Timer] "{entry}"
@@ -229,6 +235,7 @@ Persistent={persistent}"###,
                 try_!(writeln!(timer_unit_file, "AccuracySec={}m", random_delay));
             }
         }
+        try_!(symlink(timer_unit_path, cron_target_wants_path.join(timer_unit_name)));
 
         debug!("generating service {:?} from {:?}", service_unit_path, path);
         {
