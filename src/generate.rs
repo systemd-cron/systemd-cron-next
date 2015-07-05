@@ -128,11 +128,11 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
         } = *cal;
 
         Some(format!("{} *-{}-{} {}:{}:00",
-                     linearize(&**dows),
-                     linearize(&**mons),
-                     linearize(&**days),
-                     linearize(&**hrs),
-                     linearize(&**mins)))
+                     linearize(&**dows, ""),
+                     linearize(&**mons, "*"),
+                     linearize(&**days, "*"),
+                     linearize(&**hrs, "*"),
+                     linearize(&**mins, "*")))
     }));
 
     if daemon_reload && schedule.is_none() {
@@ -270,9 +270,9 @@ Persistent={persistent}"###,
     Ok(())
 }
 
-fn linearize<T: Limited + Display>(input: &[Interval<T>]) -> String {
+fn linearize<T: Limited + Display>(input: &[Interval<T>], star: &str) -> String {
     if input.len() == 1 && input[0] == Interval::Full(1) {
-        "*".to_owned()
+        star.to_owned()
     } else {
         let mut output = String::new();
         for part in input.iter().flat_map(|v| v.iter()).collect::<BTreeSet<_>>().iter() {
