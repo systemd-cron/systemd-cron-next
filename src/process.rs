@@ -21,14 +21,16 @@ pub fn process_crontab_dir<T: ToCrontabEntry, D: AsRef<Path>>(srcdir: &str, dstd
     }
 }
 
-
 pub fn process_crontab_file<T: ToCrontabEntry, P: AsRef<Path>, D: AsRef<Path>>(path: P, dstdir: D) {
     CrontabFile::<T>::new(path.as_ref()).map(|crontab| {
         let mut env = BTreeMap::new();
         for entry in crontab {
             match entry {
                 Ok(CrontabEntry::EnvVar(EnvVarEntry(name, value))) => { env.insert(name, value); },
-                Ok(data) => generate_systemd_units(data, &env, path.as_ref(), dstdir.as_ref()),
+                Ok(data) => match generate_systemd_units(data, &env, path.as_ref(), dstdir.as_ref()) {
+                    Ok(_) => (),
+                    Err(err) => error!("{}", err)
+                },
                 Err(err @ CrontabFileError { kind: CrontabFileErrorKind::Io(_), .. }) => warn!("error accessing file {}: {}", path.as_ref().display(), err),
                 Err(err @ CrontabFileError { kind: CrontabFileErrorKind::Parse(_), .. }) => warn!("skipping file {} due to parsing error: {}", path.as_ref().display(), err),
             }
