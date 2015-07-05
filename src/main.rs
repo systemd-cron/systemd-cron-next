@@ -32,7 +32,7 @@ fn is_run_by_systemd() -> bool {
 fn main() {
     kernlog::init().unwrap();
 
-    let dest_dir = match env::args().next() {
+    let dest_dir = match env::args().nth(1) {
         None => {
             println!("Usage: systemd-crontab-generator <destination-directory>");
             return;

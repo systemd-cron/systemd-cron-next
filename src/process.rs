@@ -1,10 +1,11 @@
 use std::convert::AsRef;
-use std::fs::{walk_dir, PathExt};
+use std::fs::{walk_dir, PathExt, File};
 use std::path::{Path, PathBuf};
 use std::collections::{BTreeMap, BTreeSet};
 use std::slice::SliceConcatExt;
 use std::fmt::Display;
 use std::os::unix::ffi::OsStrExt;
+use std::io::Write;
 
 use cronparse::{CrontabFile, CrontabFileError, CrontabFileErrorKind, Limited};
 use cronparse::crontab::{EnvVarEntry, CrontabEntry, ToCrontabEntry};
@@ -94,60 +95,60 @@ fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, p
         },
         Period::Minutely => {
             persistent = false;
-            Some("@minutely".to_string())
+            Some("@minutely".to_owned())
         },
         Period::Hourly => {
             if delay == 0 {
-                Some("@hourly".to_string())
+                Some("@hourly".to_owned())
             } else {
                 Some(format!("*-*-* *:{}:0", delay))
             }
         },
         Period::Midnight => {
             if delay == 0 {
-                Some("@daily".to_string())
+                Some("@daily".to_owned())
             } else {
                 Some(format!("*-*-* 0:{}:0", delay))
             }
         },
         Period::Daily => {
             if delay == 0 && hour == 0 {
-                Some("@daily".to_string())
+                Some("@daily".to_owned())
             } else {
                 Some(format!("*-*-* {}:{}:0", hour, delay))
             }
         },
         Period::Weekly => {
             if delay == 0 && hour == 0 {
-                Some("@weekly".to_string())
+                Some("@weekly".to_owned())
             } else {
                 Some(format!("Mon *-*-* {}:{}:0", hour, delay))
             }
         },
         Period::Monthly => {
             if delay == 0 && hour == 0 {
-                Some("@monthly".to_string())
+                Some("@monthly".to_owned())
             } else {
                 Some(format!("*-*-1 {}:{}:0", hour, delay))
             }
         },
         Period::Quaterly => {
             if delay == 0 && hour == 0 {
-                Some("@quaterly".to_string())
+                Some("@quaterly".to_owned())
             } else {
                 Some(format!("*-1,4,7,10-1 {}:{}:0", hour, delay))
             }
         },
         Period::Biannually => {
             if delay == 0 && hour == 0 {
-                Some("@semi-annually".to_string())
+                Some("@semi-annually".to_owned())
             } else {
                 Some(format!("*-1,7-1 {}:{}:0", hour, delay))
             }
         },
         Period::Yearly => {
             if delay == 0 && hour == 0 {
-                Some("@yearly".to_string())
+                Some("@yearly".to_owned())
             } else {
                 Some(format!("*-1-1 {}:{}:0", hour, delay))
             }
@@ -179,23 +180,96 @@ fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, p
 
     let command = entry.command();
 
-    if let (Some(schedule), Some(command)) = (schedule, command) {
+    if let Some(command) = entry.command() {
         let mut md5ctx = ::md5::Context::new();
         md5ctx.consume(path.as_os_str().as_bytes());
-        md5ctx.consume(schedule.as_bytes());
+        if let Some(ref schedule) = schedule {
+            md5ctx.consume(schedule.as_bytes());
+        }
         md5ctx.consume(command.as_bytes());
         let md5hex = tohex(&md5ctx.compute());
 
-        let service_unit_path = dstdir.join(format!("cron-{}.service", md5hex));
-        let timer_unit_path = dstdir.join(format!("cron-{}.timer", md5hex));
+        let service_unit_path = dstdir.join(format!("cronjob-{}.service", md5hex));
+        let timer_unit_path = dstdir.join(format!("cronjob-{}.timer", md5hex));
 
         println!("schedule: {:?} {:?} {:?}", md5hex, schedule, command);
+        println!("{:?} {:?}", service_unit_path, timer_unit_path);
+
+        {
+            let mut timer_unit_file = File::create(timer_unit_path).unwrap();
+
+            writeln!(timer_unit_file, r###"[Unit]
+Description=[Timer] "{entry}"
+Documentation=man:systemd-crontab-generator(8)
+PartOf=cron.target
+RefuseManualStart=true
+RefuseManualStop=true
+SourcePath={source_crontab_path}
+
+[Timer]
+Unit={service_unit_path}
+Persistent={persistent}"###,
+                entry = entry,
+                source_crontab_path = path.display(),
+                service_unit_path = service_unit_path.display(),
+                persistent = persistent,
+                );
+
+            if let Some(schedule) = schedule {
+                writeln!(timer_unit_file, "OnCalendar={}", schedule);
+            } else {
+                writeln!(timer_unit_file, "OnBootSec={}m", delay);
+            }
+
+            if random_delay != 1 {
+                writeln!(timer_unit_file, "AccuracySec={}m", random_delay);
+            }
+        }
+
+        {
+            let mut service_unit_file = File::create(service_unit_path).unwrap();
+
+            writeln!(service_unit_file, r###"[Unit]
+Description=[Cron] "{entry}"
+Documentation=man:systemd-crontab-generator(8)
+RefuseManualStart=true
+RefuseManualStop=true
+SourcePath={source_crontab_path}
+
+[Service]
+Type=oneshot
+IgnoreSIGPIPE=false
+ExecStart={command}"###,
+                entry = entry,
+                source_crontab_path = path.display(),
+                command = command,
+                );
+
+            if let Some(user) = entry.user() {
+                writeln!(service_unit_file, "User={}", user);
+            }
+            if let Some(group) = entry.group() {
+                writeln!(service_unit_file, "Group={}", group);
+            }
+            if batch {
+                writeln!(service_unit_file, "CPUSchedulingPolicy=idle");
+                writeln!(service_unit_file, "IOSchedulingClass=idle");
+            }
+
+            if !env.is_empty() {
+                write!(service_unit_file, "Environment=");
+                for (name, value) in env.iter() {
+                    write!(service_unit_file, r#""{}={}""#, name, value);
+                }
+                write!(service_unit_file, "\n");
+            }
+        }
     }
 }
 
 fn linearize<T: Limited + Display>(input: &[Interval<T>]) -> String {
     if input.len() == 1 && input[0] == Interval::Full(1) {
-        "*".to_string()
+        "*".to_owned()
     } else {
         let mut output = String::new();
         for part in input.iter().flat_map(|v| v.iter()).collect::<BTreeSet<_>>().iter() {
