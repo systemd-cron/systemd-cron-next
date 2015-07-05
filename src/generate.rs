@@ -1,8 +1,8 @@
 use std::io::Write;
 use std::fmt::Display;
-use std::fs::{PathExt, File, create_dir_all};
+use std::fs::{PathExt, File, create_dir_all, set_permissions};
 use std::os::unix::ffi::OsStrExt;
-use std::os::unix::fs::{symlink, MetadataExt};
+use std::os::unix::fs::{symlink, MetadataExt, PermissionsExt};
 use std::path::Path;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -10,6 +10,8 @@ use cronparse::Limited;
 use cronparse::crontab::{CrontabEntry, SystemCrontabEntry, UserCrontabEntry};
 use cronparse::schedule::{Schedule, Period, Calendar};
 use cronparse::interval::Interval;
+
+use pgs_files::passwd;
 
 macro_rules! try_ {
     ($exp:expr) => {
@@ -44,6 +46,7 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
     let random_delay = env.get("RANDOM_DELAY").and_then(|v| v.parse::<u64>().ok()).unwrap_or(1);
     let mut delay = env.get("DELAY").and_then(|v| v.parse::<u64>().ok()).unwrap_or(0);
     let hour = env.get("START_HOURS_RANGE").and_then(|v| v.splitn(1, '-').next().and_then(|v| v.parse::<u64>().ok())).unwrap_or(0);
+    let shell = env.get("SHELL").map(|v| &**v).unwrap_or("/bin/sh");
 
     let schedule = entry.period().and_then(|period| match *period {
         Period::Reboot => {
@@ -138,13 +141,13 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
                      linearize(&**mins)))
     }));
 
-    if let Some(command) = entry.command() {
+    if let Some(cmd) = entry.command() {
         let mut md5ctx = ::md5::Context::new();
         md5ctx.consume(path.as_os_str().as_bytes());
         if let Some(ref schedule) = schedule {
             md5ctx.consume(schedule.as_bytes());
         }
-        md5ctx.consume(command.as_bytes());
+        md5ctx.consume(cmd.as_bytes());
         let md5hex = tohex(&md5ctx.compute());
 
         let service_unit_name = format!("cronjob-{}.service", md5hex);
@@ -154,6 +157,26 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
         let timer_unit_path = dstdir.join(&timer_unit_name);
         let cron_target_wants_path = dstdir.join("cron.target.wants");
         try_!(create_dir_all(&cron_target_wants_path));
+
+        let user = entry.user().and_then(passwd::get_entry_by_name).or_else(|| passwd::get_entry_by_uid(owner)).unwrap();
+
+        let command = if Path::new(cmd).is_file() {
+            cmd.to_owned()
+        } else {
+            let script_command_path = dstdir.join(format!("cronjob-{}.sh", md5hex));
+
+            debug!("generating script {:?} from {:?}", script_command_path, path);
+            {
+                let mut script_command_file = try_!(File::create(&script_command_path));
+                try_!(writeln!(script_command_file, "#!{}", shell));
+                try_!(writeln!(script_command_file, "{}", cmd));
+            }
+
+            let mut perms = try_!(script_command_path.metadata()).permissions();
+            perms.set_mode(0o755);
+            try_!(set_permissions(&script_command_path, perms));
+            script_command_path.to_str().unwrap().to_owned()
+        };
 
         debug!("generating timer {:?} from {:?}", timer_unit_path, path);
         {
@@ -208,10 +231,8 @@ ExecStart={command}"###,
                 command = command,
                 ));
 
-            if let Some(user) = entry.user() {
-                try_!(writeln!(service_unit_file, "User={}", user));
-            } else if owner != 0 {
-                try_!(writeln!(service_unit_file, "User={}", owner));
+            if user.uid != 0 {
+                try_!(writeln!(service_unit_file, "User={}", user.name));
             }
 
             if let Some(group) = entry.group() {

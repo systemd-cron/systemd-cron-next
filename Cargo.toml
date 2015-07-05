@@ -11,6 +11,7 @@ authors = ["Konstantin Stepanov <me@kstep.me>"]
 md5 = "*"
 log = "*"
 cronparse = "*"
+pgs-files = "*"
 
 [dependencies.kernlog]
 version = "*"
