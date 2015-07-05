@@ -195,14 +195,20 @@ Description=[Cron] "{entry}"
 Documentation=man:systemd-crontab-generator(8)
 RefuseManualStart=true
 RefuseManualStop=true
-SourcePath={source_crontab_path}
+SourcePath={source_crontab_path}"###,
+                entry = entry,
+                source_crontab_path = path.display(),
+                ));
 
+            if env.contains_key("MAILTO") {
+                try!(writeln!(service_unit_file, "OnFailure=cron-failure@%i.service"));
+            }
+
+            try!(writeln!(service_unit_file, r###"
 [Service]
 Type=oneshot
 IgnoreSIGPIPE=false
 ExecStart={command}"###,
-                entry = entry,
-                source_crontab_path = path.display(),
                 command = command,
                 ));
 
