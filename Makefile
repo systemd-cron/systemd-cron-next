@@ -13,5 +13,6 @@ build: target/build/systemd-crontab-generator target/build/boot-delay
 install: release
 	install --mode=0755 --strip -D target/release/systemd-crontab-generator ${PREFIX}/lib/systemd/system-generators/systemd-crontab-generator
 	install --mode=0755 --strip -D target/release/boot-delay ${PREFIX}/bin/boot-delay
+	install --mode=0644 -D units/cron.target ${PREFIX}/lib/systemd/system/cron.target
 
 .PHONY: build release install
