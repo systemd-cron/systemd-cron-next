@@ -22,6 +22,8 @@ mod process;
 static USERS_CRONTAB_DIR: &'static str = "/var/spool/cron";  // UserCrontabEntry
 static SYSTEM_CRONTAB_DIR: &'static str = "/etc/cron.d";  // SystemCrontabEntry
 static ANACRONTAB_FILE: &'static str = "/etc/anacrontab";  // AnacrontabEntry
+static REBOOT_FILE: &'static str = "/run/crond.reboot";
+
 
 fn main() {
     kernlog::init().unwrap();
@@ -35,7 +37,12 @@ fn main() {
     };
 
     let s = dest_dir.clone();
-    let user_thread = spawn(|| process::process_crontab_dir::<UserCrontabEntry, _>(USERS_CRONTAB_DIR, s));
+    let user_thread = spawn(|| {
+        process::process_crontab_dir::<UserCrontabEntry, _>(USERS_CRONTAB_DIR, s);
+        if let Err(err) = ::std::fs::File::create(REBOOT_FILE) {
+            warn!("error creating lock file {}: {}", REBOOT_FILE, err);
+        }
+    });
 
     let s = dest_dir.clone();
     let system_thread = spawn(|| process::process_crontab_dir::<SystemCrontabEntry, _>(SYSTEM_CRONTAB_DIR, s));

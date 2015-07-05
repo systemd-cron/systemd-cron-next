@@ -13,6 +13,8 @@ use cronparse::interval::Interval;
 
 use pgs_files::passwd;
 
+use super::REBOOT_FILE;
+
 pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, path: &Path, dstdir: &Path) -> io::Result<()> {
     use cronparse::crontab::CrontabEntry::*;
 
@@ -38,6 +40,7 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
     let mut delay = env.get("DELAY").and_then(|v| v.parse::<u64>().ok()).unwrap_or(0);
     let hour = env.get("START_HOURS_RANGE").and_then(|v| v.splitn(1, '-').next().and_then(|v| v.parse::<u64>().ok())).unwrap_or(0);
     let shell = env.get("SHELL").map(|v| &**v).unwrap_or("/bin/sh");
+    let daemon_reload = Path::new(REBOOT_FILE).is_file();
 
     let schedule = entry.period().and_then(|period| match *period {
         Period::Reboot => {
@@ -131,6 +134,11 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
                      linearize(&**hrs),
                      linearize(&**mins)))
     }));
+
+    if daemon_reload && schedule.is_none() {
+        warn!("skipping job from {}: \"{}\"", path.display(), entry);
+        return Ok(());
+    }
 
     if let Some(cmd) = entry.command() {
 
