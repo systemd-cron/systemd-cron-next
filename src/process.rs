@@ -201,7 +201,7 @@ fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, p
         let service_unit_name = format!("cronjob-{}.service", md5hex);
         let timer_unit_name = format!("cronjob-{}.timer", md5hex);
 
-        let service_unit_path = dstdir.join(service_unit_name);
+        let service_unit_path = dstdir.join(&service_unit_name);
         let timer_unit_path = dstdir.join(&timer_unit_name);
         let cron_target_wants_path = dstdir.join("cron.target.wants");
         try_!(create_dir_all(&cron_target_wants_path));
@@ -219,11 +219,11 @@ RefuseManualStop=true
 SourcePath={source_crontab_path}
 
 [Timer]
-Unit={service_unit_path}
+Unit={service_unit_name}
 Persistent={persistent}"###,
                 entry = entry,
                 source_crontab_path = path.display(),
-                service_unit_path = service_unit_path.display(),
+                service_unit_name = service_unit_name,
                 persistent = persistent,
                 ));
 
