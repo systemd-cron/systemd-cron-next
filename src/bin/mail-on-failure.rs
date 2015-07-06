@@ -1,21 +1,35 @@
+#[macro_use]
+extern crate log;
+extern crate kernlog;
+
 use std::env;
 use std::process::{Command, Stdio};
 use std::io::Write;
 
+macro_rules! try_log {
+    ($exp:expr) => {
+        match $exp {
+            Ok(v) => v,
+            Err(e) => { warn!("{}", e); return; }
+        }
+    }
+}
+
 fn get_systemd_unit_property(unit: &str, prop: &str) -> String {
-    String::from_utf8_lossy(&Command::new("systemctl")
+    String::from_utf8_lossy(&try_log!(Command::new("systemctl")
                             .arg("show")
                             .arg(unit)
                             .arg("--property")
                             .arg(prop)
-                            .output()
-                            .unwrap()
+                            .output())
                             .stdout[prop.len() + 1..])
         .trim_right_matches('\n')
         .to_owned()
 }
 
 fn main() {
+    kernlog::init().unwrap();
+
     let unit = match env::args().nth(1) {
         Some(unit) => unit,
         None => {
@@ -45,10 +59,9 @@ fn main() {
         return;
     }
 
-    let mut hostname = String::from_utf8_lossy(&Command::new("uname")
+    let mut hostname = String::from_utf8_lossy(&try_log!(Command::new("uname")
         .arg("-n")
-        .output()
-        .unwrap()
+        .output())
         .stdout[..])
         .trim_right_matches('\n')
         .to_owned();
@@ -78,19 +91,16 @@ Auto-Submitted: auto-generated
         .output()
         .unwrap();
 
-    let mut mailer = Command::new("sendmail")
+    let mut mailer = try_log!(Command::new("sendmail")
         .arg("-i")
         .arg("-B8BITMIME")
         .arg(&*user)
         .stdin(Stdio::piped())
-        .spawn()
-        .unwrap();
+        .spawn());
 
-    println!("{}", head);
-    println!("{}", String::from_utf8_lossy(&*status.stdout));
     if let Some(ref mut stdin) = mailer.stdin {
-        let _ = stdin.write_all(head.as_bytes()).and_then(|_|
-                stdin.write_all(&*status.stdout));
+        try_log!(stdin.write_all(head.as_bytes()).and_then(|_|
+                 stdin.write_all(&*status.stdout)));
     }
 
     mailer.wait().unwrap();
