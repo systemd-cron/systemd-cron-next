@@ -1,7 +1,7 @@
 
 use std::env;
 use std::process::{Command, Stdio};
-use std::io::Write;
+use std::io::{Write, Result};
 
 macro_rules! try_log {
     ($exp:expr) => {
@@ -12,21 +12,20 @@ macro_rules! try_log {
     }
 }
 
-fn get_systemd_unit_property(unit: &str, prop: &str) -> String {
-    String::from_utf8_lossy(&try_log!(Command::new("systemctl")
-                            .arg("show")
-                            .arg(unit)
-                            .arg("--property")
-                            .arg(prop)
-                            .output())
-                            .stdout[prop.len() + 1..])
-        .trim_right_matches('\n')
-        .to_owned()
+fn get_systemd_unit_property(unit: &str, prop: &str) -> Result<String> {
+    Command::new("systemctl")
+        .arg("show")
+        .arg(unit)
+        .arg("--property")
+        .arg(prop)
+        .output()
+        .map(|out|
+             String::from_utf8_lossy(&out.stdout[prop.len() + 1..])
+             .trim_right_matches('\n')
+             .to_owned())
 }
 
 fn main() {
-    kernlog::init().unwrap();
-
     let unit = match env::args().nth(1) {
         Some(unit) => unit,
         None => {
@@ -35,13 +34,13 @@ fn main() {
         }
     };
 
-    let mut user = get_systemd_unit_property(&*unit, "User");
+    let mut user = try_log!(get_systemd_unit_property(&*unit, "User"));
     if user.len() == 0 {
         user = "root".to_owned();
     }
 
 
-    let job_env = get_systemd_unit_property(&*unit, "Environment");
+    let job_env = try_log!(get_systemd_unit_property(&*unit, "Environment"));
     for pair in job_env.split(' ') {
         let mut p = pair.splitn(2, '=');
         if let (Some(name), Some(value)) = (p.next(), p.next()) {
