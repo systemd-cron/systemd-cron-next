@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate log;
-extern crate kernlog;
 
 use std::env;
 use std::process::{Command, Stdio};
@@ -10,7 +7,7 @@ macro_rules! try_log {
     ($exp:expr) => {
         match $exp {
             Ok(v) => v,
-            Err(e) => { warn!("{}", e); return; }
+            Err(e) => { println!("<3>{}", e); return; }
         }
     }
 }
