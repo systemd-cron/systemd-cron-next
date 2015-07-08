@@ -38,7 +38,7 @@ macro_rules! try_ {
 }
 
 fn main() {
-    kernlog::init().unwrap();
+    log::set_logger(|filter| kernlog::KernelLog::init_level(log::LogLevelFilter::Error, filter)).unwrap();
 
     let dest_dir = match env::args().nth(1) {
         None => {

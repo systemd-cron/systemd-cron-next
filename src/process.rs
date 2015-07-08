@@ -28,7 +28,7 @@ pub fn process_crontab_file<T: ToCrontabEntry, P: AsRef<Path>, D: AsRef<Path>>(p
                 Ok(CrontabEntry::EnvVar(EnvVarEntry(name, value))) => { env.insert(name, value); },
                 Ok(data) => match generate_systemd_units(data, &env, path.as_ref(), dstdir.as_ref()) {
                     Ok(_) => (),
-                    Err(err) => error!("{}", err)
+                    Err(err) => error!("error generating unit from {}: {}", path.as_ref().display(), err)
                 },
                 Err(err @ CrontabFileError { kind: CrontabFileErrorKind::Io(_), .. }) => warn!("error accessing file {}: {}", path.as_ref().display(), err),
                 Err(err @ CrontabFileError { kind: CrontabFileErrorKind::Parse(_), .. }) => warn!("skipping file {} due to parsing error: {}", path.as_ref().display(), err),
