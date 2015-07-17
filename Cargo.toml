@@ -12,6 +12,8 @@ md5 = "*"
 log = "*"
 cronparse = "*"
 pgs-files = "*"
+time = "*"
+glob = "*"
 
 [dependencies.kernlog]
 version = "*"

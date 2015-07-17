@@ -3,16 +3,32 @@ name = "systemd-crontab-generator"
 version = "0.9.0"
 dependencies = [
  "cronparse 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glob 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernlog 0.2.0",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "md5 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "pgs-files 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.31 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "cronparse"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "glob"
+version = "0.2.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "kernel32-sys"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "winapi 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi-build 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "kernlog"
@@ -46,4 +62,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "time"
+version = "0.1.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "kernel32-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "winapi"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "winapi-build"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
