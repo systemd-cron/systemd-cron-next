@@ -21,4 +21,4 @@ users = "*"
 [dependencies.kernlog]
 version = "*"
 features = ["nightly"]
-path = "/home/kstep/git/rust/kernlog"
+#path = "/home/kstep/git/rust/kernlog"

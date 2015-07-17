@@ -1,14 +1,16 @@
 extern crate rustc_serialize;
 extern crate docopt;
 extern crate users;
+extern crate glob;
 
 use docopt::Docopt;
-use users::{Users, OSUsers};
 use std::env;
 use std::fs;
-use std::io::{stdin, stdout, Write, Read};
+use std::io::{ErrorKind, stdin, stdout, Write, Read};
+use std::fs::File;
 use std::os::unix::fs::PermissionsExt;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
+use std::process::exit;
 
 static CRONTAB_DIR: &'static str = "/var/spool/cron";
 static REBOOT_FILE: &'static str = "/run/crond.reboot";
@@ -41,7 +43,7 @@ Options:
                         the editor specified by the VISUAL or EDITOR
                         environment variables. After you exit from the editor,
                         the modified crontab will be installed automatically.
-  -s, --show            Show all user who have a crontab.
+  -s, --show            Show all users who have a crontab.
   -i, --ask             This option modifies the -r option to prompt the user
                         for a 'y/Y' response before actually removing the
                         crontab.
@@ -83,6 +85,59 @@ fn confirm(msg: &str) -> bool {
     }
 }
 
+fn list(cron_file: &Path, args: &Args) {
+    if let Err(e) = File::open(cron_file).map(|file| file.tee(stdout()).bytes().count()) {
+        use std::io::ErrorKind::*;
+        match e.kind() {
+            NotFound => println!("no crontab for {}", args.flag_user),
+            PermissionDenied => println!("you can not display {}'s crontab", args.flag_user),
+            _ => println!("failed to read {}", cron_file),
+        }
+        exit(1);
+    }
+}
+
+fn remove(cron_file: &Path, args: &Args) {
+    if !args.flag_ask || confirm(&*format!("Are you sure you want to delete {} (y/n)? ", cron_file)) {
+        if let Err(e) = fs::remove_file(cron_file) {
+            use std::io::ErrorKind::*;
+            match e.kind() {
+                NotFound => println!("no crontab for {}", args.flag_user),
+                PermissionDenied => match args.flag_user {
+                    user @ Some(_) if user != users::get_current_username() => {
+                        println!("you can not remove {}'s crontab", args.flag_user);
+                    },
+                    _ => match File::create(cron_file) {
+                        Ok(_) => println!("couldn't remove {}, wiped it instead", cron_file),
+                        Err(_) => println!("failed to remove {}", cron_file),
+                    }
+                },
+                _ => println!("failed to remove {}", cron_file)
+            }
+            exit(1);
+        }
+    }
+}
+
+fn show(cron_file: &Path, args: &Args) {
+    if users::get_current_uid() != 0 {
+        return println!("must be privileged to use -s");
+    }
+
+    if let Ok(dir) = fs::read_dir(CRONTAB_DIR) {
+        for entry in dir {
+            let name = entry.ok().and_then(|e| e.path().file_name()).map(|s| s.to_string_lossy().into_owned());
+            if let Some(user) = name {
+                if users::get_user_by_name(&*user).is_some() {
+                    println!("{}", user);
+                } else {
+                    println!("WARNING: crontab found with no matching user: {}", user)
+                }
+            }
+        }
+    }
+}
+
 fn main() {
     let args: Args = Docopt::new(USAGE)
                             .and_then(|d| d.decode())
@@ -98,10 +153,16 @@ fn main() {
         }
     }
 
-    let mut users = OSUsers::empty_cache();
-    let cron_file = PathBuf::from(CRONTAB_DIR).join(args.flag_user.clone().or_else(|| users.get_current_username()).unwrap());
+    let cron_file = PathBuf::from(CRONTAB_DIR).join(args.flag_user.clone().or_else(|| users::get_current_username()).unwrap());
 
-    println!("{:?}", cron_file);
-    println!("{:?}", editor);
-    println!("{:?}", args);
+    if args.flag_show {
+        show(&*cron_file, &args);
+    } else if args.flag_list {
+        list(&*cron_file, &args);
+    }
+
+    //println!("{:?}", confirm("Yes or no? "));
+    //println!("{:?}", cron_file);
+    //println!("{:?}", editor);
+    //println!("{:?}", args);
 }
