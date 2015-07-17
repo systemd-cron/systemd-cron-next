@@ -6,7 +6,7 @@ use docopt::Docopt;
 use users::{Users, OSUsers};
 use std::env;
 use std::fs;
-use std::io::{stdin, Read};
+use std::io::{stdin, stdout, Write, Read};
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 
@@ -70,12 +70,15 @@ fn get_editor() -> Option<String> {
 
 fn confirm(msg: &str) -> bool {
     let mut stdin = stdin();
+    let mut stdout = stdout();
     loop {
-        print!("{}", msg);
-        let mut buf = [0u8; 1];
+        stdout.write_all(msg.as_bytes()).unwrap();
+        stdout.flush();
+        let mut buf = [0u8; 1024];
         match stdin.read(&mut buf) {
-            Ok(1) => return buf[0] == 121 || buf[0] == 89,
-            _ => println!("Please reply \"y\" or \"n\""),
+            Ok(n) if n > 0 && (buf[0] == 121 || buf[0] == 89) => return true,
+            Ok(n) if n > 0 && (buf[0] == 110 || buf[0] == 78) => return false,
+            _ => { stdout.write_all("Please reply \"y\" or \"n\"\n".as_bytes()).unwrap(); },
         }
     }
 }
