@@ -5,7 +5,7 @@
 extern crate cronparse;
 extern crate libc;
 extern crate md5;
-extern crate pgs_files;
+extern crate users;
 
 #[macro_use]
 extern crate log;

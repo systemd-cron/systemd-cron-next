@@ -11,7 +11,7 @@ use cronparse::crontab::{CrontabEntry, SystemCrontabEntry, UserCrontabEntry};
 use cronparse::schedule::{Schedule, Period, Calendar};
 use cronparse::interval::Interval;
 
-use pgs_files::passwd;
+use users::{get_user_by_name, get_user_by_uid};
 
 use super::REBOOT_FILE;
 
@@ -143,7 +143,7 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
     if let Some(cmd) = entry.command() {
 
         // make sure we know the user
-        let user = try!(entry.user().and_then(passwd::get_entry_by_name).or_else(|| passwd::get_entry_by_uid(owner))
+        let user = try!(entry.user().and_then(get_user_by_name).or_else(|| get_user_by_uid(owner))
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "unknown user")));
 
         // generate unique cron job id
