@@ -25,7 +25,7 @@ fn cleanup<P: AsRef<Path>, I: IntoIterator<Item=P>>(iter: I) {
     let ten_days_ago = get_time() - Duration::days(10);
     for stamp in iter {
         if let Ok(meta) = metadata(&stamp) {
-            if meta.mtime() < ten_days_ago.sec {
+            if (meta.mtime() as i64) < ten_days_ago.sec {
                 let _ = remove_file(&stamp);
             }
         }
