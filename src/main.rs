@@ -25,6 +25,7 @@ mod process;
 
 static USERS_CRONTAB_DIR: &'static str = "/var/spool/cron";  // UserCrontabEntry
 static SYSTEM_CRONTAB_DIR: &'static str = "/etc/cron.d";  // SystemCrontabEntry
+static SYSTEM_CRONTAB_FILE: &'static str = "/etc/crontab";
 static ANACRONTAB_FILE: &'static str = "/etc/anacrontab";  // AnacrontabEntry
 static REBOOT_FILE: &'static str = "/run/crond.reboot";
 
@@ -79,7 +80,10 @@ ExecStart=/bin/sh -c "{bindir}/systemctl daemon-reload ; {bindir}/systemctl try-
     });
 
     let s = dest_dir.clone();
-    let system_thread = spawn(|| process::process_crontab_dir::<SystemCrontabEntry, _>(SYSTEM_CRONTAB_DIR, s));
+    let system_thread = spawn(|| {
+        try_!(process::process_crontab_dir::<SystemCrontabEntry, _>(SYSTEM_CRONTAB_DIR, s));
+        try_!(process::process_crontab_file::<SystemCrontabEntry, _, _>(SYSTEM_CRONTAB_FILE, s));
+    });
 
     let s = dest_dir.clone();
     let anacron_thread = spawn(|| process::process_crontab_file::<AnacrontabEntry, _, _>(ANACRONTAB_FILE, s));
