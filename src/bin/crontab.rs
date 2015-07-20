@@ -141,6 +141,10 @@ fn show(cron_file: &Path, args: &Args) {
     }
 }
 
+fn edit(cron_file: &Path, args: &Args) {
+    // TODO
+}
+
 fn main() {
     let args: Args = Docopt::new(USAGE)
                             .and_then(|d| d.decode())
@@ -162,6 +166,10 @@ fn main() {
         show(&*cron_file, &args);
     } else if args.flag_list {
         list(&*cron_file, &args);
+    } else if args.flag_edit {
+        edit(&*cron_file, &args);
+    } else if args.flag_remove {
+        remove(&*cron_file, &args);
     }
 
     //println!("{:?}", confirm("Yes or no? "));
