@@ -88,7 +88,7 @@ fn confirm(msg: &str) -> bool {
     }
 }
 
-fn list(cron_file: &Path, args: &Args) {
+fn list(cron_file: &Path, args: &Args) -> i32 {
     if let Err(e) = File::open(cron_file).map(|file| file.tee(stdout()).bytes().count()) {
         use std::io::ErrorKind::*;
         match e.kind() {
@@ -96,11 +96,12 @@ fn list(cron_file: &Path, args: &Args) {
             PermissionDenied => println!("you can not display {}'s crontab", args.flag_user.as_ref().map(String::deref).unwrap_or("???")),
             _ => println!("failed to read {}", cron_file.display()),
         }
-        exit(1);
+        return 1;
     }
+    0
 }
 
-fn remove(cron_file: &Path, args: &Args) {
+fn remove(cron_file: &Path, args: &Args) -> i32 {
     if !args.flag_ask || confirm(&*format!("Are you sure you want to delete {} (y/n)? ", cron_file.display())) {
         if let Err(e) = fs::remove_file(cron_file) {
             use std::io::ErrorKind::*;
@@ -117,14 +118,16 @@ fn remove(cron_file: &Path, args: &Args) {
                 },
                 _ => println!("failed to remove {}", cron_file.display())
             }
-            exit(1);
+            return 1;
         }
     }
+    0
 }
 
-fn show(cron_file: &Path, args: &Args) {
+fn show(cron_file: &Path, args: &Args) -> i32 {
     if users::get_current_uid() != 0 {
-        return println!("must be privileged to use -s");
+        println!("must be privileged to use -s");
+        return 2;
     }
 
     if let Ok(dir) = fs::read_dir(CRONTAB_DIR) {
@@ -139,14 +142,16 @@ fn show(cron_file: &Path, args: &Args) {
             }
         }
     }
+    0
 }
 
-fn edit(cron_file: &Path, args: &Args) {
+fn edit(cron_file: &Path, args: &Args) -> i32 {
     // TODO
+    0
 }
 
 fn main() {
-    let args: Args = Docopt::new(USAGE)
+    let mut args: Args = Docopt::new(USAGE)
                             .and_then(|d| d.decode())
                             .unwrap_or_else(|e| e.exit());
 
@@ -160,20 +165,21 @@ fn main() {
         }
     }
 
-    let cron_file = PathBuf::from(CRONTAB_DIR).join(args.flag_user.clone().or_else(|| users::get_current_username()).unwrap());
-
-    if args.flag_show {
-        show(&*cron_file, &args);
-    } else if args.flag_list {
-        list(&*cron_file, &args);
-    } else if args.flag_edit {
-        edit(&*cron_file, &args);
-    } else if args.flag_remove {
-        remove(&*cron_file, &args);
+    if args.flag_user.is_none() {
+        args.flag_user = users::get_current_username();
     }
+    let cron_file = PathBuf::from(CRONTAB_DIR).join(args.flag_user.clone().unwrap());
 
-    //println!("{:?}", confirm("Yes or no? "));
-    //println!("{:?}", cron_file);
-    //println!("{:?}", editor);
-    //println!("{:?}", args);
+    exit(
+        if args.flag_show {
+            show(&*cron_file, &args)
+        } else if args.flag_list {
+            list(&*cron_file, &args)
+        } else if args.flag_edit {
+            edit(&*cron_file, &args)
+        } else if args.flag_remove {
+            remove(&*cron_file, &args)
+        } else {
+            0
+        })
 }
