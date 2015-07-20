@@ -4,7 +4,9 @@ extern crate rustc_serialize;
 extern crate docopt;
 extern crate users;
 extern crate glob;
+extern crate tempfile;
 
+use tempfile::NamedTempFile;
 use docopt::Docopt;
 use std::env;
 use std::fs;
@@ -12,7 +14,7 @@ use std::io::{stdin, stdout, stderr, Write, Read};
 use std::fs::File;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{PathBuf, Path};
-use std::process::exit;
+use std::process::{Command, exit};
 use std::ops::Deref;
 
 static CRONTAB_DIR: &'static str = "/var/spool/cron";
@@ -148,7 +150,51 @@ fn show(cron_file: &Path, args: &Args) -> i32 {
 }
 
 fn edit(cron_file: &Path, args: &Args) -> i32 {
-    // TODO
+    use std::io::ErrorKind::*;
+
+    let mut stderr = stderr();
+
+    let editor = match get_editor() {
+        None => {
+            writeln!(stderr, "no editor found");
+            return 1;
+        },
+        Some(editor) => editor
+    };
+
+    let mut tmpfile = NamedTempFile::new_in(CRONTAB_DIR).unwrap();
+
+    if let Err(e) = File::open(cron_file).map(|file| file.tee(&mut tmpfile).bytes().count()) {
+        match e.kind() {
+            NotFound => tmpfile.write_all("# min hour dom month dow command".as_bytes()).unwrap(),
+            _ => {
+                writeln!(stderr, "you can not edit {}'s crontab", args.flag_user.as_ref().map(String::deref).unwrap_or("???"));
+                return 1;
+            }
+        }
+    }
+
+    tmpfile.flush().unwrap();
+    match Command::new(editor).arg(tmpfile.path()).status() {
+        Ok(status) if status.success() => (),
+        _ => {
+            writeln!(stderr, "edit aborted, your edit is kept here: {}", tmpfile.path().display());
+            return 1;
+        }
+    }
+
+    // TODO: check tmpfile with parser
+
+    if let Err(err) = tmpfile.persist(cron_file) {
+        match err.error.kind() {
+            PermissionDenied => writeln!(stderr, "you can not edit {}'s crontab, your edit is kept here: {}",
+                                         args.flag_user.as_ref().map(String::deref).unwrap_or("???"),
+                                         err.file.path().display()),
+            _ => writeln!(stderr, "unexpected error: {}, your edit is kept here: {}", err.error, err.file.path().display())
+        }.unwrap();
+        return 1;
+    }
+
     0
 }
 

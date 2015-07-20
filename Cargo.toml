@@ -16,6 +16,7 @@ glob = "*"
 docopt = "*"
 rustc-serialize = "*"
 users = "*"
+tempfile = "*"
 
 [dependencies.kernlog]
 version = "*"
