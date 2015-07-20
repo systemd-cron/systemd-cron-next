@@ -1,3 +1,5 @@
+#![feature(io)]
+
 extern crate rustc_serialize;
 extern crate docopt;
 extern crate users;
@@ -6,11 +8,12 @@ extern crate glob;
 use docopt::Docopt;
 use std::env;
 use std::fs;
-use std::io::{ErrorKind, stdin, stdout, Write, Read};
+use std::io::{stdin, stdout, Write, Read};
 use std::fs::File;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{PathBuf, Path};
 use std::process::exit;
+use std::ops::Deref;
 
 static CRONTAB_DIR: &'static str = "/var/spool/cron";
 static REBOOT_FILE: &'static str = "/run/crond.reboot";
@@ -75,7 +78,7 @@ fn confirm(msg: &str) -> bool {
     let mut stdout = stdout();
     loop {
         stdout.write_all(msg.as_bytes()).unwrap();
-        stdout.flush();
+        stdout.flush().unwrap();
         let mut buf = [0u8; 1024];
         match stdin.read(&mut buf) {
             Ok(n) if n > 0 && (buf[0] == 121 || buf[0] == 89) => return true,
@@ -89,30 +92,30 @@ fn list(cron_file: &Path, args: &Args) {
     if let Err(e) = File::open(cron_file).map(|file| file.tee(stdout()).bytes().count()) {
         use std::io::ErrorKind::*;
         match e.kind() {
-            NotFound => println!("no crontab for {}", args.flag_user),
-            PermissionDenied => println!("you can not display {}'s crontab", args.flag_user),
-            _ => println!("failed to read {}", cron_file),
+            NotFound => println!("no crontab for {}", args.flag_user.as_ref().map(String::deref).unwrap_or("???")),
+            PermissionDenied => println!("you can not display {}'s crontab", args.flag_user.as_ref().map(String::deref).unwrap_or("???")),
+            _ => println!("failed to read {}", cron_file.display()),
         }
         exit(1);
     }
 }
 
 fn remove(cron_file: &Path, args: &Args) {
-    if !args.flag_ask || confirm(&*format!("Are you sure you want to delete {} (y/n)? ", cron_file)) {
+    if !args.flag_ask || confirm(&*format!("Are you sure you want to delete {} (y/n)? ", cron_file.display())) {
         if let Err(e) = fs::remove_file(cron_file) {
             use std::io::ErrorKind::*;
             match e.kind() {
-                NotFound => println!("no crontab for {}", args.flag_user),
+                NotFound => println!("no crontab for {}", args.flag_user.as_ref().map(String::deref).unwrap_or("???")),
                 PermissionDenied => match args.flag_user {
-                    user @ Some(_) if user != users::get_current_username() => {
-                        println!("you can not remove {}'s crontab", args.flag_user);
+                    ref user @ Some(_) if user != &users::get_current_username() => {
+                        println!("you can not remove {}'s crontab", args.flag_user.as_ref().map(String::deref).unwrap_or("???"));
                     },
                     _ => match File::create(cron_file) {
-                        Ok(_) => println!("couldn't remove {}, wiped it instead", cron_file),
-                        Err(_) => println!("failed to remove {}", cron_file),
+                        Ok(_) => println!("couldn't remove {}, wiped it instead", cron_file.display()),
+                        Err(_) => println!("failed to remove {}", cron_file.display()),
                     }
                 },
-                _ => println!("failed to remove {}", cron_file)
+                _ => println!("failed to remove {}", cron_file.display())
             }
             exit(1);
         }
@@ -126,7 +129,7 @@ fn show(cron_file: &Path, args: &Args) {
 
     if let Ok(dir) = fs::read_dir(CRONTAB_DIR) {
         for entry in dir {
-            let name = entry.ok().and_then(|e| e.path().file_name()).map(|s| s.to_string_lossy().into_owned());
+            let name = entry.ok().and_then(|e| e.path().file_name().map(|s| s.to_string_lossy().into_owned()));
             if let Some(user) = name {
                 if users::get_user_by_name(&*user).is_some() {
                     println!("{}", user);
