@@ -130,7 +130,7 @@ fn show(cron_file: &Path, args: &Args) -> i32 {
     let mut stderr = stderr();
 
     if users::get_current_uid() != 0 {
-        writeln!(stderr, "must be privileged to use -s");
+        writeln!(stderr, "must be privileged to use -s").unwrap();
         return 2;
     }
 
@@ -141,7 +141,7 @@ fn show(cron_file: &Path, args: &Args) -> i32 {
                 if users::get_user_by_name(&*user).is_some() {
                     println!("{}", user);
                 } else {
-                    writeln!(stderr, "WARNING: crontab found with no matching user: {}", user);
+                    writeln!(stderr, "WARNING: crontab found with no matching user: {}", user).unwrap();
                 }
             }
         }
@@ -156,7 +156,7 @@ fn edit(cron_file: &Path, args: &Args) -> i32 {
 
     let editor = match get_editor() {
         None => {
-            writeln!(stderr, "no editor found");
+            writeln!(stderr, "no editor found").unwrap();
             return 1;
         },
         Some(editor) => editor
@@ -168,7 +168,7 @@ fn edit(cron_file: &Path, args: &Args) -> i32 {
         match e.kind() {
             NotFound => tmpfile.write_all("# min hour dom month dow command".as_bytes()).unwrap(),
             _ => {
-                writeln!(stderr, "you can not edit {}'s crontab", args.flag_user.as_ref().map(String::deref).unwrap_or("???"));
+                writeln!(stderr, "you can not edit {}'s crontab", args.flag_user.as_ref().map(String::deref).unwrap_or("???")).unwrap();
                 return 1;
             }
         }
@@ -178,7 +178,7 @@ fn edit(cron_file: &Path, args: &Args) -> i32 {
     match Command::new(editor).arg(tmpfile.path()).status() {
         Ok(status) if status.success() => (),
         _ => {
-            writeln!(stderr, "edit aborted, your edit is kept here: {}", tmpfile.path().display());
+            writeln!(stderr, "edit aborted, your edit is kept here: {}", tmpfile.path().display()).unwrap();
             return 1;
         }
     }
@@ -207,8 +207,6 @@ fn main() {
     let mut args: Args = Docopt::new(USAGE)
                             .and_then(|d| d.decode())
                             .unwrap_or_else(|e| e.exit());
-
-    let editor = get_editor();
 
     match fs::metadata(CRONTAB_DIR) {
         Ok(ref meta) if meta.is_dir() => (),
