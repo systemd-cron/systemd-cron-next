@@ -50,7 +50,7 @@ fn main() {
     };
 
     let s = dest_dir.clone();
-    let user_thread = spawn(|| {
+    let user_thread = spawn(move || {
         if Path::new(USERS_CRONTAB_DIR).is_dir() {
             process::process_crontab_dir::<UserCrontabEntry, _>(USERS_CRONTAB_DIR, s);
             if let Err(err) = File::create(REBOOT_FILE) {
@@ -80,13 +80,13 @@ ExecStart=/bin/sh -c "{bindir}/systemctl daemon-reload ; {bindir}/systemctl try-
     });
 
     let s = dest_dir.clone();
-    let system_thread = spawn(|| {
-        try_!(process::process_crontab_dir::<SystemCrontabEntry, _>(SYSTEM_CRONTAB_DIR, s));
-        try_!(process::process_crontab_file::<SystemCrontabEntry, _, _>(SYSTEM_CRONTAB_FILE, s));
+    let system_thread = spawn(move || {
+        process::process_crontab_dir::<SystemCrontabEntry, _>(SYSTEM_CRONTAB_DIR, &s);
+        process::process_crontab_file::<SystemCrontabEntry, _, _>(SYSTEM_CRONTAB_FILE, &s);
     });
 
     let s = dest_dir.clone();
-    let anacron_thread = spawn(|| process::process_crontab_file::<AnacrontabEntry, _, _>(ANACRONTAB_FILE, s));
+    let anacron_thread = spawn(move || process::process_crontab_file::<AnacrontabEntry, _, _>(ANACRONTAB_FILE, &s));
 
     let _ = user_thread.join();
     let _ = system_thread.join();
