@@ -198,6 +198,11 @@ fn edit(cron_file: &Path, args: &Args) -> i32 {
     0
 }
 
+fn replace(cron_file: &Path, args: &Args) -> i32 {
+    // TODO
+    0
+}
+
 fn main() {
     let mut args: Args = Docopt::new(USAGE)
                             .and_then(|d| d.decode())
@@ -224,7 +229,11 @@ fn main() {
         } else if args.flag_list {
             list(&*cron_file, &args)
         } else if args.flag_edit {
-            edit(&*cron_file, &args)
+            if args.arg_FILE.is_none() {
+                edit(&*cron_file, &args)
+            } else {
+                replace(&*cron_file, &args)
+            }
         } else if args.flag_remove {
             remove(&*cron_file, &args)
         } else {
