@@ -8,7 +8,7 @@ extern crate glob;
 use docopt::Docopt;
 use std::env;
 use std::fs;
-use std::io::{stdin, stdout, Write, Read};
+use std::io::{stdin, stdout, stderr, Write, Read};
 use std::fs::File;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{PathBuf, Path};
@@ -102,22 +102,22 @@ fn list(cron_file: &Path, args: &Args) -> i32 {
 }
 
 fn remove(cron_file: &Path, args: &Args) -> i32 {
+    let mut stderr = stderr();
+
     if !args.flag_ask || confirm(&*format!("Are you sure you want to delete {} (y/n)? ", cron_file.display())) {
         if let Err(e) = fs::remove_file(cron_file) {
             use std::io::ErrorKind::*;
             match e.kind() {
-                NotFound => println!("no crontab for {}", args.flag_user.as_ref().map(String::deref).unwrap_or("???")),
+                NotFound => writeln!(stderr, "no crontab for {}", args.flag_user.as_ref().map(String::deref).unwrap_or("???")),
                 PermissionDenied => match args.flag_user {
-                    ref user @ Some(_) if user != &users::get_current_username() => {
-                        println!("you can not remove {}'s crontab", args.flag_user.as_ref().map(String::deref).unwrap_or("???"));
-                    },
+                    ref user @ Some(_) if user != &users::get_current_username() => writeln!(stderr, "you can not remove {}'s crontab", args.flag_user.as_ref().map(String::deref).unwrap_or("???")),
                     _ => match File::create(cron_file) {
-                        Ok(_) => println!("couldn't remove {}, wiped it instead", cron_file.display()),
-                        Err(_) => println!("failed to remove {}", cron_file.display()),
+                        Ok(_) => writeln!(stderr, "couldn't remove {}, wiped it instead", cron_file.display()),
+                        Err(_) => writeln!(stderr, "failed to remove {}", cron_file.display()),
                     }
                 },
-                _ => println!("failed to remove {}", cron_file.display())
-            }
+                _ => writeln!(stderr, "failed to remove {}", cron_file.display())
+            }.unwrap();
             return 1;
         }
     }
@@ -125,8 +125,10 @@ fn remove(cron_file: &Path, args: &Args) -> i32 {
 }
 
 fn show(cron_file: &Path, args: &Args) -> i32 {
+    let mut stderr = stderr();
+
     if users::get_current_uid() != 0 {
-        println!("must be privileged to use -s");
+        writeln!(stderr, "must be privileged to use -s");
         return 2;
     }
 
@@ -137,7 +139,7 @@ fn show(cron_file: &Path, args: &Args) -> i32 {
                 if users::get_user_by_name(&*user).is_some() {
                     println!("{}", user);
                 } else {
-                    println!("WARNING: crontab found with no matching user: {}", user)
+                    writeln!(stderr, "WARNING: crontab found with no matching user: {}", user);
                 }
             }
         }
