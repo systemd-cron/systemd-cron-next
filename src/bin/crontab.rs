@@ -33,7 +33,6 @@ fn change_owner<P: AsRef<Path>>(path: P, owner: libc::uid_t, group: libc::gid_t)
 }
 
 static CRONTAB_DIR: &'static str = "/var/spool/cron";
-static REBOOT_FILE: &'static str = "/run/crond.reboot";
 
 static USAGE: &'static str = r#"
 Usage: crontab [-u <user>] -l
@@ -180,7 +179,7 @@ fn edit(cron_file: &Path, _args: &Args) -> i32 {
     tmpfile.flush().unwrap();
     {
         let (uid, gid) = (users::get_current_uid(), users::get_current_gid());
-        change_owner(tmpfile.path(), uid, gid);
+        change_owner(tmpfile.path(), uid, gid).unwrap(); // TODO: user from args.flag_user
         let _guard = users::switch_user_group(uid, gid);
         match Command::new(editor).arg(tmpfile.path()).status() {
             Ok(status) if status.success() => (),
@@ -202,7 +201,27 @@ fn edit(cron_file: &Path, _args: &Args) -> i32 {
 }
 
 fn replace(cron_file: &Path, args: &Args) -> i32 {
-    unimplemented!();
+    let mut tmpfile = NamedTempFile::new_in(CRONTAB_DIR).unwrap();
+
+    match args.arg_file {
+        Some(ref name) if &**name == "-" => { stdin().tee(&mut tmpfile).bytes().count(); },
+        Some(ref name) => { File::open(&**name).unwrap().tee(&mut tmpfile).bytes().count(); },
+        None => unreachable!()
+    }
+
+    tmpfile.flush().unwrap();
+
+    // TODO: check tmpfile syntax
+
+    if let Err(e) = tmpfile.persist(cron_file) {
+        writeln!(stderr(), "error renaming {} to {}: {}", e.file.path().display(), cron_file.display(), e.error).unwrap();
+        return 1;
+    }
+
+    // TODO: user from args.flag_user
+    change_owner(cron_file, users::get_current_uid(), users::get_current_gid()).unwrap();
+
+    0
 }
 
 fn main() {
