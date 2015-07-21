@@ -6,6 +6,25 @@ readme = "README.md"
 repository = "https://github.com/rust/systemd-crontab-generator"
 license = "MIT"
 authors = ["Konstantin Stepanov <me@kstep.me>"]
+build = "build.rs"
+
+[features]
+default = ["sched-boot", "sched-hourly", "sched-daily", "sched-weekly", "sched-monthly"]
+
+sched-boot = []
+sched-hourly = []
+sched-daily = []
+sched-weekly = []
+sched-monthly = []
+sched-yearly = []
+sched-minutely = []
+sched-quarterly = []
+sched-semi-annually = []
+persistent = []
+
+[build-dependencies]
+rumblebars = "*"
+rustc-serialize = "*"
 
 [dependencies]
 libc = "*"

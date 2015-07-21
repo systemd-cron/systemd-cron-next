@@ -1,0 +1,11 @@
+[Unit]
+Description={{ package }}
+Documentation=man:systemd.cron(7)
+{{#each schedules }}
+Requires=cron-{{ this }}.timer
+{{/each}}
+Wants=cron-update.path
+
+[Install]
+WantedBy=multi-user.target
+
