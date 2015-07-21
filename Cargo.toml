@@ -8,6 +8,7 @@ license = "MIT"
 authors = ["Konstantin Stepanov <me@kstep.me>"]
 
 [dependencies]
+libc = "*"
 md5 = "*"
 log = "*"
 cronparse = "*"
@@ -15,10 +16,13 @@ time = "*"
 glob = "*"
 docopt = "*"
 rustc-serialize = "*"
-users = "*"
 tempfile = "*"
 
 [dependencies.kernlog]
 version = "*"
 features = ["nightly"]
 #path = "/home/kstep/git/rust/kernlog"
+
+[dependencies.users]
+version = "*"
+git = "https://github.com/kstep/rust-users.git"
