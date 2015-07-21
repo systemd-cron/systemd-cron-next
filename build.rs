@@ -16,8 +16,14 @@ fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let output = Path::new(&*out_dir);
 
-    let data = Json::Object(build_render_data());
+    let data = build_render_data();
     let ctx = EvalContext::new();
+
+    let mut consts = File::create(output + "/consts.rs").unwrap();
+    writeln!(consts, "static CRONTAB_DIR: &'static str = {:?};", data["statedir"]).unwrap();
+    writeln!(consts, "static USERS_CRONTAB_DIR: &'static str = {:?};", data["statedir"]).unwrap();
+
+    let data = Json::Object(data);
 
     for entry in fs::read_dir(UNITS_DIR).unwrap() {
         let entry = entry.unwrap();
