@@ -1,0 +1,62 @@
+.TH "CRONTAB" "1" "2014-12-10" "{{ package }} {{ version }}" "crontab"
+
+.SH NAME
+crontab - maintain crontab files for individual users
+
+.SH SYNOPSIS
+crontab [\-u user] file
+.br
+crontab [\-u user] [\-l | \-r | \-e | \-s] [\-i]
+
+.TP
+.B (blank)
+default operation is replace
+.TP
+.B -u, --user
+edit some other user's crontab
+.TP
+.B -l, --list
+list user's crontab
+.TP
+.B -r, --remove
+delete user's crontab
+.TP
+.B -e, --edit
+edit user's crontab
+.TP
+.B -s, --show
+show all user who have a crontab
+.TP
+.B -i, --ask
+prompt before deleting user's crontab
+
+.SH DESCRIPTION
+Crontab is the program used to let users install, deinstall or list
+recurrent jobs in the legacy cron format.
+.br
+Each user can have their own crontab, and though these are files in {{ statedir }},
+they are not intended to be edited directly.
+.br
+These jobs are then automatically translated in systemd Timers & Units
+by systemd-crontab-generator.
+
+.SH FILES
+.TP
+.I {{ statedir }}
+Directory for users crontabs.
+.TP
+.I /etc/cron.allow
+list of users that can use crontab
+.TP
+.I /etc/cron.deny
+list of users that aren't allowed to use crontab
+.br
+(by default, only root can use crontab)
+
+.SH LIMITATIONS
+SELinux is not supported.
+
+.SH AUTHOR
+Konstantin Stepanov <me@kstep.me>
+.br
+Alexandre Detiste <alexandre@detiste.be> for this manpage & setgid helper

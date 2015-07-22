@@ -1,0 +1,101 @@
+.TH SYSTEMD-CRONTAB-GENERATOR 8 "2014-06-29" "{{ package }} {{ version }}" systemd-crontab-generator
+
+.SH NAME
+systemd-crontab-generator - translate cron schedules in systemd Units
+
+.SH SYNOPSIS
+{{ libdir }}/systemd/system-generators/systemd-crontab-generator output_folder
+
+.SH DESCRIPTION
+systemd-crontab-generator is a generator that translates the legacy cron files (see FILES)
+into native systemd units & timers.
+.PP
+It is not meant to be run manually, it is called automatically by systemd.
+.PP
+It is run
+.TP
+*
+during early boot,
+.TP
+*
+a second time by cron-after-var.service, only if /var is a separate mount,
+in order to process user crontabs in {{ statedir }}; if any,
+.TP
+*
+after each manual updates to the cron files, (*)
+.TP
+*
+and when distribution packages add files in /etc/cron.d/. (*)
+.PP
+
+.B
+(*):
+those are monitored by cron-update.path
+
+.PP
+systemd\-crontab\-generator
+implements the
+\m[blue]\fBgenerator specification\fR\m[]\&\s-2\u[1]\d\s+2\&.
+
+.SH FILES
+.TP
+.B /etc/crontab
+System crontab, see \fBcrontab\fR(5).
+
+.TP
+.B /etc/cron.d
+Directory for system crontabs provided by packages.
+
+.TP
+.B /etc/anacrontab
+See \fBanacrontab\fR(5).
+
+.TP
+.B {{ statedir }}
+Directory for users crontabs.
+.br
+
+.TP
+.B /run/systemd/generator
+Directory where the generated units are stored.
+
+.TP
+.B /run/crond.reboot
+Flag used to avoid running @reboot jobs again after boot.
+
+.TP
+.B /var/lib/systemd/timers
+Directory where systemd store time stamps needed for the
+.I Persistent
+feature.
+
+.SH DIAGNOSTICS
+With systemd >= 209, you can execute
+.B "systemctl list-timers"
+to have a overview of timers and know when they will elapse.
+.br
+
+If you get errors like
+.br
+.B {{ libdir }}/systemd/system-generators/systemd-crontab-generator failed with error code 1.
+.br
+in the journal, you can manually run
+.br
+.B "{{ libdir }}/systemd/system-generators/systemd-crontab-generator /tmp"
+.br
+to get a more verbose error message.
+
+.SH SEE ALSO
+\fBsystemd.cron\fR(7),\fBcrontab\fR(5),\fBsystemd.unit\fR(5),\fBsystemd.timer\fR(5)
+
+.SH "NOTES"
+.IP " 1." 4
+generator specification
+.RS 4
+\%http://www.freedesktop.org/wiki/Software/systemd/Generators
+.RE
+
+.SH AUTHOR
+Konstantin Stepanov <me@kstep.me> for the generator
+.br
+Alexandre Detiste <alexandre@detiste.be> for this man page

@@ -11,13 +11,13 @@ use rumblebars::{Template, EvalContext};
 use rustc_serialize::json::Json;
 
 static UNITS_DIR: &'static str = "units";
+static MAN_DIR: &'static str = "man";
 
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let output = Path::new(&*out_dir);
 
     let data = build_render_data();
-    let ctx = EvalContext::new();
 
     let mut config = File::create(out_dir.clone() + "/config.rs").unwrap();
     writeln!(config, "pub static USERS_CRONTAB_DIR: &'static str = {:?};", data["statedir"].as_string().unwrap()).unwrap();
@@ -27,17 +27,25 @@ fn main() {
 
     let data = Json::Object(data);
 
-    for entry in fs::read_dir(UNITS_DIR).unwrap() {
+    compile_templates(UNITS_DIR, output, &data);
+    compile_templates(MAN_DIR, output, &data);
+}
+
+fn compile_templates<P: AsRef<Path>>(source_dir: &str, output_dir: P, data: &Json) {
+    let ctx = EvalContext::new();
+    for entry in fs::read_dir(source_dir).unwrap() {
         let entry = entry.unwrap();
         let name = entry.file_name().into_string().unwrap();
-        let target = output.join(&name[..name.len()-3]);
-        let tmpl = File::open(entry.path()).and_then(|mut file| {
-            let mut buf = String::new();
-            file.read_to_string(&mut buf).map(|_| Template::new(&*buf).unwrap())
-        }).unwrap();
+        if name.ends_with(".in") {
+            let target = output_dir.as_ref().join(&name[..name.len()-3]);
+            let tmpl = File::open(entry.path()).and_then(|mut file| {
+                let mut buf = String::new();
+                file.read_to_string(&mut buf).map(|_| Template::new(&*buf).unwrap())
+            }).unwrap();
 
-        println!("generating unit: {:?} -> {:?}...", entry.path(), target);
-        tmpl.eval(&data, &mut File::create(target).unwrap(), &ctx).unwrap();
+            println!("compiling from template: {:?} -> {:?}...", entry.path(), target);
+            tmpl.eval(data, &mut File::create(target).unwrap(), &ctx).unwrap();
+        }
     }
 }
 

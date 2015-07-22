@@ -1,0 +1,179 @@
+.TH SYSTEMD.CRON 7 "" "{{ package }} {{ version }}" systemd.cron
+
+.SH NAME
+systemd.cron - systemd cron units
+
+.SH SYNOPSIS
+cron.target,
+cron-boot.timer, cron-boot.target, cron-boot.service,
+cron-minutely.timer, cron-minutely.target, cron-minutely.service,
+cron-hourly.timer, cron-hourly.target, cron-hourly.service,
+cron-daily.timer, cron-daily.target, cron-daily.service,
+cron-weekly.timer, cron-weekly.target, cron-weekly.service,
+cron-monthly.timer, cron-monthly.target, cron-monthly.service,
+cron-quarterly.timer, cron-quarterly.target, cron-quarterly.service,
+cron-semi-annually.timer, cron-semi-annually.target, cron-semi-annually.service,
+cron-yearly.timer, cron-yearly.target, cron-yearly.service,
+cron-update.path, cron-update.service.
+
+.SH DESCRIPTION
+These units provide cron daemon functionality by running scripts in cron directories.
+.br
+The crontabs are monitored by cron-update.path and are automatically translated by \fBsystemd-crontab-generator\fR(8) .
+
+.SH FILES
+.TP
+.I {{ confdir }}/cron.boot
+Directory for scripts to be executed on boot.
+
+.TP
+.I {{ confdir }}/cron.minutely
+Directory for scripts to be executed every minute.
+
+.TP
+.I {{ confdir }}/cron.hourly
+Directory for scripts to be executed every hour.
+
+.TP
+.I {{ confdir }}/cron.daily
+Directory for scripts to be executed every day.
+
+.TP
+.I {{ confdir }}/cron.weekly
+Directory for scripts to be executed every week.
+
+.TP
+.I {{ confdir }}/cron.monthly
+Directory for scripts to be executed every month.
+
+.TP
+.I {{ confdir }}/cron.quarterly
+Directory for scripts to be executed every 3 months.
+
+.TP
+.I {{ confdir }}/cron.semi-annually
+Directory for scripts to be executed every 6 months.
+
+.TP
+.I {{ confdir }}/cron.yearly
+Directory for scripts to be executed every year.
+
+.TP
+.I {{ confdir }}/cron.d
+Directory for \fBcrontabs\fR to be executed on a custom schedule.
+The files in this folder must follow the \fBcrontab\fR(5) layout.
+.br
+If there exists a timer of the same name + '.timer' in {{ unitdir }} or /etc/systemd/system,
+this crontab will be ignored to enable a smooth migration to native timers.
+.br
+You can also use this to mask an unneeded crontab provide by a package:
+.br
+ln \-s /dev/null /etc/systemd/system/[package].timer
+
+.SH SYSTEM UNITS
+.TP
+cron.target
+The target unit which starts the others. This should be enabled and started to use cron functionality.
+
+.TP
+cron-\fIschedule\fR.timer
+The timer units which pull the cron-\fIschedule\fR.target units at the appropriate time. Started and stopped by the
+cron.target unit. These units cannot be controlled manually.
+
+.TP
+cron-\fIschedule\fR.target
+The targets invoke all service units wanted by them, including cron-\fIschedule\fR.service.
+
+.TP
+cron-\fIschedule\fR.service
+The service units which run scripts in the cron directories. Started and stopped by the cron-\fIschedule\fR.target
+units. These units cannot be controlled manually. You can use \fBjournalctl\fR(1) to view the output of scripts run
+from these units.
+
+.SH LIMITATIONS
+This cron replacement only send mails on failure. The log of jobs is saved in systemd journal.
+Do \fInot\fR use with a cron daemon or anacron, otherwise scripts may be
+executed multiple times.
+.br
+All services are run with
+.B
+Type=oneshot
+, that means you can't use systemd-cron to launch long lived forking daemons.
+
+.SH EXTENSIONS
+The generator can optionally turn all crontabs in persistent timers with the
+.B PERSISTENT=true
+flag, while a regular cron+anacron setup won't catch-up the missed executions of crontabs on boot.
+
+.SH EXAMPLES
+
+.IP "Start cron units"
+.SB # systemctl start cron.target
+
+.IP "Start cron units on boot"
+.SB # systemctl enable cron.target
+
+.IP "View script output"
+.SB # journalctl -u cron-boot
+.br
+.SB # journalctl -u cron-minutely
+.br
+.SB # journalctl -u cron-hourly
+.br
+.SB # journalctl -u cron-daily
+.br
+.SB # journalctl -u cron-weekly
+.br
+.SB # journalctl -u cron-monthly
+.br
+.SB # journalctl -u cron-quarterly
+.br
+.SB # journalctl -u cron-semi-annually
+.br
+.SB # journalctl -u cron-yearly
+.br
+
+.IP "Example service file executed every hour"
+.SB [Unit]
+.br
+.SB Description=Update the man db
+
+.SB [Service]
+.br
+.SB Nice=19
+.br
+.SB IOSchedulingClass=2
+.br
+.SB IOSchedulingPriority=7
+.br
+.SB ExecStart=/usr/bin/mandb --quiet
+
+.SB [Install]
+.br
+.SB WantedBy=cron-hourly.target
+
+.SH NOTES
+.nr step 1 1
+.IP \n[step]. 3
+The exact times scripts are executed is determined by the values of the special calendar events \fIhourly\fR,
+\fIdaily\fR, \fIweekly\fR, \fImonthly\fR, and \fIyearly\fR defined by \fBsystemd.time\fR(7).
+.IP \n+[step].
+\fBrun-parts\fR(8) is used to run scripts. Scripts must be executable by \fIroot\fR to run.
+
+.SH DIAGNOSTICS
+With systemd >= 209, you can execute "systemctl list-timers" to have a overview of
+timers and know when they will elapse.
+
+.SH SEE ALSO
+.BR systemd (1),
+.BR systemd.unit (5),
+.BR systemd.service (5),
+.BR systemd.target (5),
+.BR systemd.timer (5),
+.BR systemd.time (7),
+.BR systemd-crontab-generator (8),
+.BR crontab (5),
+.BR run-parts (8)
+
+.SH AUTHOR
+Dwayne Bent
