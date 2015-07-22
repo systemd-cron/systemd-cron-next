@@ -69,7 +69,7 @@ ConditionDirectoryNotEmpty={statedir}
 Type=oneshot
 ExecStart=/bin/sh -c "{bindir}/systemctl daemon-reload ; {bindir}/systemctl try-restart cron.target""###,
                     statedir = USERS_CRONTAB_DIR,
-                    bindir = "/usr/bin"));
+                    bindir = BIN_DIR));
             }
 
             let multiuser_wants_path = Path::new(&*s).join("multi-user.target.wants");

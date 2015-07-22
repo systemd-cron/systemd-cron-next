@@ -21,6 +21,7 @@ fn main() {
 
     let mut config = File::create(out_dir.clone() + "/config.rs").unwrap();
     writeln!(config, "static USERS_CRONTAB_DIR: &'static str = {:?};", data["statedir"].as_string().unwrap()).unwrap();
+    writeln!(config, "static BIN_DIR: &'static str = {:?};", data["bindir"].as_string().unwrap()).unwrap();
 
     let data = Json::Object(data);
 

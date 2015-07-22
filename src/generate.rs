@@ -247,12 +247,15 @@ SourcePath={source_crontab_path}
 
 [Timer]
 Unit={service_unit_name}
-Persistent={persistent}"###,
+"###,
                 entry = entry,
                 source_crontab_path = path.display(),
                 service_unit_name = service_unit_name,
-                persistent = persistent,
                 ));
+
+            if cfg![feature="persistent"] {
+                try!(writeln!(timer_unit_file, "Persistent={}", persistent));
+            }
 
             if let Some(schedule) = schedule {
                 try!(writeln!(timer_unit_file, "OnCalendar={}", schedule));
