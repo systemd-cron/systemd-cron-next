@@ -84,8 +84,7 @@ fn get_editor() -> Option<String> {
     env::var("EDITOR").ok()
         .or_else(|| env::var("VISUAL").ok())
         .or_else(|| ["/usr/bin/editor", "/usr/bin/vim", "/usr/bin/nano", "/usr/bin/mcedit"].iter()
-                 .filter(|editor| fs::metadata(editor).map(|meta| meta.is_file() && meta.permissions().mode() & 0o0111 != 0).unwrap_or(false))
-                 .next()
+                 .find(|editor| fs::metadata(editor).map(|meta| meta.is_file() && meta.permissions().mode() & 0o0111 != 0).unwrap_or(false))
                  .map(|&s| s.to_owned()))
 }
 
@@ -104,7 +103,7 @@ fn confirm(msg: &str) -> bool {
     }
 }
 
-fn list(cron_file: &Path, args: &Args) -> i32 {
+fn list(cron_file: &Path, cron_uid: libc::uid_t, args: &Args) -> i32 {
     if let Err(e) = File::open(cron_file).map(|file| file.tee(stdout()).bytes().count()) {
         use std::io::ErrorKind::*;
         match e.kind() {
@@ -116,7 +115,7 @@ fn list(cron_file: &Path, args: &Args) -> i32 {
     0
 }
 
-fn remove(cron_file: &Path, args: &Args) -> i32 {
+fn remove(cron_file: &Path, cron_uid: libc::uid_t, args: &Args) -> i32 {
     let mut stderr = stderr();
 
     if !args.flag_ask || confirm(&*format!("Are you sure you want to delete {} (y/n)? ", cron_file.display())) {
@@ -132,7 +131,7 @@ fn remove(cron_file: &Path, args: &Args) -> i32 {
     0
 }
 
-fn show(_cron_file: &Path, _args: &Args) -> i32 {
+fn show(_cron_file: &Path, _cron_uid: libc::uid_t, _args: &Args) -> i32 {
     let mut stderr = stderr();
 
     if let Ok(dir) = fs::read_dir(CRONTAB_DIR) {
@@ -151,7 +150,7 @@ fn show(_cron_file: &Path, _args: &Args) -> i32 {
     0
 }
 
-fn edit(cron_file: &Path, _args: &Args) -> i32 {
+fn edit(cron_file: &Path, cron_uid: libc::uid_t, _args: &Args) -> i32 {
     use std::io::ErrorKind::*;
 
     let mut stderr = stderr();
@@ -200,7 +199,7 @@ fn edit(cron_file: &Path, _args: &Args) -> i32 {
     0
 }
 
-fn replace(cron_file: &Path, args: &Args) -> i32 {
+fn replace(cron_file: &Path, cron_uid: libc::uid_t, args: &Args) -> i32 {
     let mut tmpfile = NamedTempFile::new_in(CRONTAB_DIR).unwrap();
 
     match args.arg_file {
@@ -230,10 +229,20 @@ fn main() {
                             .and_then(|d| d.decode())
                             .unwrap_or_else(|e| e.exit());
 
-    if args.flag_user.is_some() && users::get_current_uid() != 0 {
-        writeln!(stderr, "must be privileged to use -u").unwrap();
-        exit(1);
-    }
+    let cron_uid = match args.flag_user {
+        Some(_) if users::get_current_uid() != 0 => {
+            writeln!(stderr, "must be privileged to use -u").unwrap();
+            exit(1);
+        },
+        Some(ref user) => match users::get_user_by_name(&**user) {
+            Some(user) => user.uid,
+            None => {
+                writeln!(stderr, "unknown user: {}", user).unwrap();
+                exit(1);
+            }
+        },
+        None => users::get_current_uid(),
+    };
 
     match fs::metadata(CRONTAB_DIR) {
         Ok(ref meta) if !meta.is_dir() => {
@@ -247,17 +256,15 @@ fn main() {
         _ => ()
     }
 
-    if args.flag_user.is_none() {
-        args.flag_user = users::get_current_username();
-    }
-    let cron_file = PathBuf::from(CRONTAB_DIR).join(args.flag_user.clone().unwrap());
+    let cron_file = PathBuf::from(CRONTAB_DIR).join(args.flag_user.clone()
+        .unwrap_or_else(users::get_current_username));
 
     exit(match args {
-        Args { flag_show: true, .. } => show(&*cron_file, &args),
-        Args { flag_list: true, .. } => list(&*cron_file, &args),
-        Args { flag_edit: true, arg_file: None, .. } => edit(&*cron_file, &args),
-        Args { flag_edit: true, .. } => replace(&*cron_file, &args),
-        Args { flag_remove: true, .. } => remove(&*cron_file, &args),
+        Args { flag_show: true, .. } => show(&*cron_file, cron_uid, &args),
+        Args { flag_list: true, .. } => list(&*cron_file, cron_uid, &args),
+        Args { flag_edit: true, arg_file: None, .. } => edit(&*cron_file, cron_uid, &args),
+        Args { flag_edit: true, .. } => replace(&*cron_file, cron_uid, &args),
+        Args { flag_remove: true, .. } => remove(&*cron_file, cron_uid, &args),
         _ => unreachable!()
     })
 }
