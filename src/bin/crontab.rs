@@ -21,6 +21,8 @@ use std::process::{Command, exit};
 use std::ops::Deref;
 use std::ffi::CString;
 
+include!(concat!(env!("OUT_DIR"), "/config.rs"));
+
 extern "C" {
     fn chown(path: *const libc::c_char, owner: libc::uid_t, group: libc::gid_t) -> libc::c_int;
 }
@@ -32,8 +34,6 @@ fn change_owner<P: AsRef<Path>>(path: P, owner: libc::uid_t, group: libc::gid_t)
         _ => unreachable!()
     }
 }
-
-static CRONTAB_DIR: &'static str = "/var/spool/cron";
 
 static USAGE: &'static str = r#"
 Usage: crontab [-u <user>] -l
@@ -135,7 +135,7 @@ fn remove(cron_file: &Path, _cron_uid: (uid_t, gid_t), args: &Args) -> i32 {
 fn show(_cron_file: &Path, _cron_uid: (uid_t, gid_t), _args: &Args) -> i32 {
     let mut stderr = stderr();
 
-    if let Ok(dir) = fs::read_dir(CRONTAB_DIR) {
+    if let Ok(dir) = fs::read_dir(USERS_CRONTAB_DIR) {
         for item in dir {
             if let Ok(entry) = item {
                 if let Some(name) = entry.file_name().to_str() {
@@ -164,7 +164,7 @@ fn edit(cron_file: &Path, cron_uid: (uid_t, gid_t), _args: &Args) -> i32 {
         Some(editor) => editor
     };
 
-    let mut tmpfile = NamedTempFile::new_in(CRONTAB_DIR).unwrap();
+    let mut tmpfile = NamedTempFile::new_in(USERS_CRONTAB_DIR).unwrap();
 
     if let Err(e) = File::open(cron_file).map(|file| file.tee(&mut tmpfile).bytes().count()) {
         match e.kind() {
@@ -200,7 +200,7 @@ fn edit(cron_file: &Path, cron_uid: (uid_t, gid_t), _args: &Args) -> i32 {
 }
 
 fn replace(cron_file: &Path, cron_uid: (uid_t, gid_t), args: &Args) -> i32 {
-    let mut tmpfile = NamedTempFile::new_in(CRONTAB_DIR).unwrap();
+    let mut tmpfile = NamedTempFile::new_in(USERS_CRONTAB_DIR).unwrap();
 
     match args.arg_file {
         Some(ref name) if &**name == "-" => { stdin().tee(&mut tmpfile).bytes().count(); },
@@ -244,19 +244,19 @@ fn main() {
         None => (users::get_current_uid(), users::get_current_gid()),
     };
 
-    match fs::metadata(CRONTAB_DIR) {
+    match fs::metadata(USERS_CRONTAB_DIR) {
         Ok(ref meta) if !meta.is_dir() => {
-            writeln!(stderr, "{} is not a directory!", CRONTAB_DIR).unwrap();
+            writeln!(stderr, "{} is not a directory!", USERS_CRONTAB_DIR).unwrap();
             exit(1);
         },
-        Err(_) => if let Err(_) = fs::create_dir_all(CRONTAB_DIR) {
-            writeln!(stderr, "{} doesn't exist!", CRONTAB_DIR).unwrap();
+        Err(_) => if let Err(_) = fs::create_dir_all(USERS_CRONTAB_DIR) {
+            writeln!(stderr, "{} doesn't exist!", USERS_CRONTAB_DIR).unwrap();
             exit(1);
         },
         _ => ()
     }
 
-    let cron_file = PathBuf::from(CRONTAB_DIR).join(args.flag_user.clone()
+    let cron_file = PathBuf::from(USERS_CRONTAB_DIR).join(args.flag_user.clone()
         .or_else(users::get_current_username).unwrap());
 
     exit(match args {

@@ -22,7 +22,7 @@ use cronparse::crontab::{UserCrontabEntry, SystemCrontabEntry, AnacrontabEntry};
 mod generate;
 mod process;
 
-static USERS_CRONTAB_DIR: &'static str = "/var/spool/cron";  // UserCrontabEntry
+include!(concat!(env!("OUT_DIR"), "/config.rs"));
 static SYSTEM_CRONTAB_DIR: &'static str = "/etc/cron.d";  // SystemCrontabEntry
 static SYSTEM_CRONTAB_FILE: &'static str = "/etc/crontab";
 static ANACRONTAB_FILE: &'static str = "/etc/anacrontab";  // AnacrontabEntry

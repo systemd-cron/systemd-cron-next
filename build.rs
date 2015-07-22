@@ -19,9 +19,8 @@ fn main() {
     let data = build_render_data();
     let ctx = EvalContext::new();
 
-    let mut consts = File::create(out_dir.clone() + "/consts.rs").unwrap();
-    writeln!(consts, "static CRONTAB_DIR: &'static str = {:?};", data["statedir"]).unwrap();
-    writeln!(consts, "static USERS_CRONTAB_DIR: &'static str = {:?};", data["statedir"]).unwrap();
+    let mut config = File::create(out_dir.clone() + "/config.rs").unwrap();
+    writeln!(config, "static USERS_CRONTAB_DIR: &'static str = {:?};", data["statedir"].as_string().unwrap()).unwrap();
 
     let data = Json::Object(data);
 
