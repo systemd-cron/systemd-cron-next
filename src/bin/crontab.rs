@@ -7,7 +7,10 @@ extern crate users;
 extern crate glob;
 extern crate tempfile;
 extern crate libc;
+extern crate cronparse;
 
+use cronparse::{CrontabFile, CrontabFileError};
+use cronparse::crontab::UserCrontabEntry;
 use tempfile::NamedTempFile;
 use docopt::Docopt;
 use libc::{uid_t, gid_t};
@@ -189,7 +192,10 @@ fn edit(cron_file: &Path, cron_uid: (uid_t, gid_t), _args: &Args) -> i32 {
         }
     }
 
-    // TODO: check tmpfile with parser
+    if let Err(err) = check_crontab_syntax(tmpfile.path()) {
+        writeln!(stderr, "syntax error in new crontab file: {}", err).unwrap();
+        return 1;
+    }
 
     if let Err(err) = tmpfile.persist(cron_file) {
         writeln!(stderr, "unexpected error: {}, your edit is kept here: {}", err.error, err.file.path().display()).unwrap();
@@ -200,6 +206,7 @@ fn edit(cron_file: &Path, cron_uid: (uid_t, gid_t), _args: &Args) -> i32 {
 }
 
 fn replace(cron_file: &Path, cron_uid: (uid_t, gid_t), args: &Args) -> i32 {
+    let mut stderr = stderr();
     let mut tmpfile = NamedTempFile::new_in(USERS_CRONTAB_DIR).unwrap();
 
     match args.arg_file {
@@ -210,14 +217,16 @@ fn replace(cron_file: &Path, cron_uid: (uid_t, gid_t), args: &Args) -> i32 {
 
     tmpfile.flush().unwrap();
 
-    // TODO: check tmpfile syntax
-
-    if let Err(e) = tmpfile.persist(cron_file) {
-        writeln!(stderr(), "error renaming {} to {}: {}", e.file.path().display(), cron_file.display(), e.error).unwrap();
+    if let Err(err) = check_crontab_syntax(tmpfile.path()) {
+        writeln!(stderr, "syntax error in new crontab file: {}", err).unwrap();
         return 1;
     }
 
-    // TODO: user from args.flag_user
+    if let Err(e) = tmpfile.persist(cron_file) {
+        writeln!(stderr, "error renaming {} to {}: {}", e.file.path().display(), cron_file.display(), e.error).unwrap();
+        return 1;
+    }
+
     change_owner(cron_file, cron_uid.0, cron_uid.1).unwrap();
 
     0
@@ -267,4 +276,11 @@ fn main() {
         Args { flag_remove: true, .. } => remove(&*cron_file, cron_uid, &args),
         _ => unreachable!()
     })
+}
+
+fn check_crontab_syntax<P: AsRef<Path>>(path: P) -> Result<(), CrontabFileError> {
+    match try!(CrontabFile::<UserCrontabEntry>::new(path)).find(Result::is_err) {
+        Some(Err(err)) => Err(err),
+        _ => Ok(())
+    }
 }
