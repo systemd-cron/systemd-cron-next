@@ -20,8 +20,10 @@ fn main() {
     let ctx = EvalContext::new();
 
     let mut config = File::create(out_dir.clone() + "/config.rs").unwrap();
-    writeln!(config, "static USERS_CRONTAB_DIR: &'static str = {:?};", data["statedir"].as_string().unwrap()).unwrap();
-    writeln!(config, "static BIN_DIR: &'static str = {:?};", data["bindir"].as_string().unwrap()).unwrap();
+    writeln!(config, "pub static USERS_CRONTAB_DIR: &'static str = {:?};", data["statedir"].as_string().unwrap()).unwrap();
+    writeln!(config, "pub static PACKAGE: &'static str = {:?};", data["package"].as_string().unwrap()).unwrap();
+    writeln!(config, "pub static BIN_DIR: &'static str = {:?};", data["bindir"].as_string().unwrap()).unwrap();
+    writeln!(config, "pub static LIB_DIR: &'static str = {:?};", data["libdir"].as_string().unwrap()).unwrap();
 
     let data = Json::Object(data);
 

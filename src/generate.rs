@@ -13,7 +13,7 @@ use cronparse::interval::Interval;
 
 use users::{get_user_by_name, get_user_by_uid};
 
-use super::REBOOT_FILE;
+use super::{REBOOT_FILE, PACKAGE, LIB_DIR};
 
 pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, path: &Path, dstdir: &Path) -> io::Result<()> {
     use cronparse::crontab::CrontabEntry::*;
@@ -204,6 +204,13 @@ SourcePath={source_crontab_path}"###,
                 try!(writeln!(service_unit_file, "OnFailure=cron-failure@%i.service"));
             }
 
+            if user.uid != 0 {
+                try!(writeln!(service_unit_file, "Requires=systemd-user-sessions.service"));
+                if !user.home_dir.is_empty() {
+                    try!(writeln!(service_unit_file, "RequiresMountsFor={}", user.home_dir));
+                }
+            }
+
             try!(writeln!(service_unit_file, r###"
 [Service]
 Type=oneshot
@@ -211,6 +218,10 @@ IgnoreSIGPIPE=false
 ExecStart={command}"###,
                 command = command,
                 ));
+
+            if schedule.is_some() && delay > 0 {
+                try!(writeln!(service_unit_file, "ExecStartPre=-{}/{}/boot-delay {}", LIB_DIR, PACKAGE, delay));
+            }
 
             if user.uid != 0 {
                 try!(writeln!(service_unit_file, "User={}", user.name));
@@ -246,8 +257,7 @@ RefuseManualStop=true
 SourcePath={source_crontab_path}
 
 [Timer]
-Unit={service_unit_name}
-"###,
+Unit={service_unit_name}"###,
                 entry = entry,
                 source_crontab_path = path.display(),
                 service_unit_name = service_unit_name,
