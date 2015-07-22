@@ -4,7 +4,7 @@ extern crate rustc_serialize;
 use std::env;
 use std::path::Path;
 use std::fs::{self, File};
-use std::io::Read;
+use std::io::{Read, Write};
 use std::collections::BTreeMap;
 
 use rumblebars::{Template, EvalContext};
@@ -19,7 +19,7 @@ fn main() {
     let data = build_render_data();
     let ctx = EvalContext::new();
 
-    let mut consts = File::create(output + "/consts.rs").unwrap();
+    let mut consts = File::create(out_dir.clone() + "/consts.rs").unwrap();
     writeln!(consts, "static CRONTAB_DIR: &'static str = {:?};", data["statedir"]).unwrap();
     writeln!(consts, "static USERS_CRONTAB_DIR: &'static str = {:?};", data["statedir"]).unwrap();
 
