@@ -14,6 +14,7 @@ use cronparse::crontab::UserCrontabEntry;
 use tempfile::NamedTempFile;
 use docopt::Docopt;
 use libc::{uid_t, gid_t};
+use users::User;
 use std::env;
 use std::fs;
 use std::io::{stdin, stdout, stderr, Write, Read, self};
@@ -107,11 +108,11 @@ fn confirm(msg: &str) -> bool {
     }
 }
 
-fn list(cron_file: &Path, _cron_uid: (uid_t, gid_t), args: &Args) -> i32 {
+fn list(cron_file: &Path, cron_user: &User, args: &Args) -> i32 {
     if let Err(e) = File::open(cron_file).map(|file| file.tee(stdout()).bytes().count()) {
         use std::io::ErrorKind::*;
         match e.kind() {
-            NotFound => println!("no crontab for {}", args.flag_user.as_ref().map(String::deref).unwrap_or("???")),
+            NotFound => println!("no crontab for {}", cron_user.name),
             _ => println!("failed to read {}: {}", cron_file.display(), e),
         }
         return 1;
@@ -119,14 +120,14 @@ fn list(cron_file: &Path, _cron_uid: (uid_t, gid_t), args: &Args) -> i32 {
     0
 }
 
-fn remove(cron_file: &Path, _cron_uid: (uid_t, gid_t), args: &Args) -> i32 {
+fn remove(cron_file: &Path, cron_user: &User, args: &Args) -> i32 {
     let mut stderr = stderr();
 
     if !args.flag_ask || confirm(&*format!("Are you sure you want to delete {} (y/n)? ", cron_file.display())) {
         if let Err(e) = fs::remove_file(cron_file) {
             use std::io::ErrorKind::*;
             match e.kind() {
-                NotFound => writeln!(stderr, "no crontab for {}", args.flag_user.as_ref().map(String::deref).unwrap_or("???")),
+                NotFound => writeln!(stderr, "no crontab for {}", cron_user.name),
                 _ => writeln!(stderr, "failed to remove {}: {}", cron_file.display(), e)
             }.unwrap();
             return 1;
@@ -135,7 +136,7 @@ fn remove(cron_file: &Path, _cron_uid: (uid_t, gid_t), args: &Args) -> i32 {
     0
 }
 
-fn show(_cron_file: &Path, _cron_uid: (uid_t, gid_t), _args: &Args) -> i32 {
+fn show(_cron_file: &Path, _cron_user: &User, _args: &Args) -> i32 {
     let mut stderr = stderr();
 
     if let Ok(dir) = fs::read_dir(USERS_CRONTAB_DIR) {
@@ -154,7 +155,7 @@ fn show(_cron_file: &Path, _cron_uid: (uid_t, gid_t), _args: &Args) -> i32 {
     0
 }
 
-fn edit(cron_file: &Path, cron_uid: (uid_t, gid_t), _args: &Args) -> i32 {
+fn edit(cron_file: &Path, cron_user: &User, _args: &Args) -> i32 {
     use std::io::ErrorKind::*;
 
     let mut stderr = stderr();
@@ -181,8 +182,8 @@ fn edit(cron_file: &Path, cron_uid: (uid_t, gid_t), _args: &Args) -> i32 {
 
     tmpfile.flush().unwrap();
     {
-        change_owner(tmpfile.path(), cron_uid.0, cron_uid.1).unwrap();
-        let _guard = users::switch_user_group(cron_uid.0, cron_uid.1);
+        change_owner(tmpfile.path(), cron_user.uid, cron_user.primary_group).unwrap();
+        let _guard = users::switch_user_group(cron_user.uid, cron_user.primary_group);
         match Command::new(editor).arg(tmpfile.path()).status() {
             Ok(status) if status.success() => (),
             _ => {
@@ -205,7 +206,7 @@ fn edit(cron_file: &Path, cron_uid: (uid_t, gid_t), _args: &Args) -> i32 {
     0
 }
 
-fn replace(cron_file: &Path, cron_uid: (uid_t, gid_t), args: &Args) -> i32 {
+fn replace(cron_file: &Path, cron_user: &User, args: &Args) -> i32 {
     let mut stderr = stderr();
     let mut tmpfile = NamedTempFile::new_in(USERS_CRONTAB_DIR).unwrap();
 
@@ -227,7 +228,7 @@ fn replace(cron_file: &Path, cron_uid: (uid_t, gid_t), args: &Args) -> i32 {
         return 1;
     }
 
-    change_owner(cron_file, cron_uid.0, cron_uid.1).unwrap();
+    change_owner(cron_file, cron_user.uid, cron_user.primary_group).unwrap();
 
     0
 }
@@ -238,19 +239,19 @@ fn main() {
                             .and_then(|d| d.decode())
                             .unwrap_or_else(|e| e.exit());
 
-    let cron_uid = match args.flag_user {
+    let cron_user = match args.flag_user {
         Some(_) if users::get_current_uid() != 0 => {
             writeln!(stderr, "must be privileged to use -u").unwrap();
             exit(1);
         },
         Some(ref user) => match users::get_user_by_name(&**user) {
-            Some(user) => (user.uid, user.primary_group),
+            Some(user) => user,
             None => {
                 writeln!(stderr, "unknown user: {}", user).unwrap();
                 exit(1);
             }
         },
-        None => (users::get_current_uid(), users::get_current_gid()),
+        None => users::get_user_by_uid(users::get_current_uid()).unwrap(),
     };
 
     match fs::metadata(USERS_CRONTAB_DIR) {
@@ -265,15 +266,14 @@ fn main() {
         _ => ()
     }
 
-    let cron_file = PathBuf::from(USERS_CRONTAB_DIR).join(args.flag_user.clone()
-        .or_else(users::get_current_username).unwrap());
+    let cron_file = PathBuf::from(USERS_CRONTAB_DIR).join(cron_user.name.clone());
 
     exit(match args {
-        Args { flag_show: true, .. } => show(&*cron_file, cron_uid, &args),
-        Args { flag_list: true, .. } => list(&*cron_file, cron_uid, &args),
-        Args { flag_edit: true, arg_file: None, .. } => edit(&*cron_file, cron_uid, &args),
-        Args { flag_edit: true, .. } => replace(&*cron_file, cron_uid, &args),
-        Args { flag_remove: true, .. } => remove(&*cron_file, cron_uid, &args),
+        Args { flag_show: true, .. } => show(&*cron_file, &cron_user, &args),
+        Args { flag_list: true, .. } => list(&*cron_file, &cron_user, &args),
+        Args { flag_edit: true, arg_file: None, .. } => edit(&*cron_file, &cron_user, &args),
+        Args { flag_edit: true, .. } => replace(&*cron_file, &cron_user, &args),
+        Args { flag_remove: true, .. } => remove(&*cron_file, &cron_user, &args),
         _ => unreachable!()
     })
 }
