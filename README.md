@@ -1,4 +1,4 @@
-systemd-crontab-generator
+systemd-cron-next
 =========================
 
 ## What's it?
