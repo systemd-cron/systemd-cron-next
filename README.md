@@ -32,12 +32,32 @@ the idea of systemd crontab generator. Though the original C implementation of c
 from maillist is very incomplete: it doesn't support monotonic schedules (like `@daily` or `@yearly`),
 it can't parse comments and environment variable settings, etc.
 
-I'm not very good in C, so C implementation (while it's recommended for generators) whould take
-me ages to write, so I used Python for proof-of-concept implementation. And here comes
-**systemd-crontab-generator**.
+Hence I decided to create **systemd-crontab-generator**.
 
 [published]: http://lists.freedesktop.org/archives/systemd-devel/2013-August/012591.html
 [declined]: http://lists.freedesktop.org/archives/systemd-devel/2013-September/013120.html
+
+## History
+
+I'm not very good in C, so C implementation (while it's recommended for generators) whould take
+me ages to write, so at first I used Python for proof-of-concept implementation.
+Then my small home project was noticed by **[@systemd-cron][]** project and eventually was merged
+into it and evolved thanks to **Alexanre Detiste**, **Dwayne Bent** and others.
+
+Still I beared in mind the image of the project's future: rewrite it in systems language.
+Python, being VM-based scripting language is not the best choice for system service:
+it's slow (the slowest systemd generator ever, actually), have problems with multithreading,
+requires a lot of hacks like setgid/setuid C helper to implement crontab, etc.
+
+Meanwhile the [Rust][] systems language, I liked very much from the very beginning,
+[reached its 1.0][announce], so I decided to grab the moment and rewrite everything in Rust.
+
+The current version you are starring at is meant to be a successor of **[@systemd-cron][]**
+project, fully rewritten in Rust from ground up, while preserving experience, systemd unit
+templates and main algorithms and solutions polished in Python version by **[@systemd-cron][]** team.
+
+[Rust]: http://www.rust-lang.org
+[announce]: http://blog.rust-lang.org/2015/05/15/Rust-1.0.html
 
 ## Installation
 
@@ -69,10 +89,12 @@ You were warned!
 
 ## License
 
-The project is licensed under [CC-BY](http://creativecommons.org/licenses/by/4.0/).
-Don't forget to attribute if you derive from my work!
-Also, specially for [systemd-cron](https://github.com/systemd-cron), the project is licensed
-under [MIT](http://opensource.org/licenses/MIT) license for compatibility.
+The main part of a project is licensed under [MIT][].
+Crontab man page is derived from [Vixie Cron][vixie] and licensed under *Paul-Vixie's-license*.
+Don't forget to attribute if you derive from the work!
+
+[vixie]: https://wiki.gentoo.org/wiki/Cron#vixie-cron
+[MIT]: http://opensource.org/licenses/MIT
 
 ## Contribution
 
@@ -85,6 +107,28 @@ Also check out [comments][] in AUR for current news about Arch package status.
 
 ## Copyright
 
-© 2014, Konstantin Stepanov (<me@kstep.me>)
+Original **[@systemd-cron][]** project:
+- © 2013 Dwayne Bent
+- © 2013 Dominik Peteler
+- © 2014 Daniel Schaal <farbing@web.de>
 
-[![CC-BY](https://i.creativecommons.org/l/by/4.0/80x15.png "CC-BY")](http://creativecommons.org/licenses/by/4.0/)
+Systemd crontab generator evolution, tooling and support:
+- © 2014 Alexandre Detiste <alexandre@detiste.be>
+- © 2014 Dwayne Bent
+
+Original systemd crontab generator code in Python, Rust version:
+- © 2014-2015 Konstantin Stepanov <me@kstep.me>
+
+Crontab man-page (*man/crontab.5.in*):
+- © 1988, 1990, 1993, 1994, Paul Vixie <paul@vix.com>
+- © 1994, Ian Jackson <ian@davenant.greenend.org.uk>
+- © 1996-2005, Steve Greenland <stevegr@debian.org>
+- © 2005-2006, 2008-2012, Javier Fernández-Sanguino Peña <jfs@debian.org>
+- © 2010-2011, 2014 Christian Kastner <debian@kvr.at>
+- Numerous contributions via the Debian BTS copyright their respective authors
+
+Debian packaging:
+- © 2013 Shawn Landden <shawn@churchofgit.com>
+- © 2014 Alexandre Detiste <alexandre@detiste.be>
+
+[@systemd-cron]: https://github.com/systemd-cron/systemd-cron
