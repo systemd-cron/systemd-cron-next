@@ -23,8 +23,8 @@ packages.
 >
 > Lennart
 
-While I'm generally agree with him, I'm not totally convinced it's always convinient to herd a bunch of
-separate `*.timer` and `*.service` files. I find convinient to have all jobs schedule in one single file,
+While I'm generally agree with him, I'm not totally convinced it's always convenient to herd a bunch of
+separate `*.timer` and `*.service` files. I find convenient to have all jobs schedule in one single file,
 and it's more obvious to see relations in jobs scheduling if you have several jobs on sight at once.
 
 All things considered, I think people should have an alternative here, so I decided to support
@@ -62,7 +62,7 @@ To control cron jobs, use `cron.target`, e.g. to start and enable cron after ins
 ## Disclaimer
 
 This is a beta product! Use at your own risk! I'm not responsible for any data losses,
-time losses, money losses or any other failures due to usage or misusage of this project!
+time losses, money losses or any other failures due to use or misuse of this project!
 I've run this product on my local server for several months without issues, but it does not
 mean you will have no issues as well! Don't blame me for any crashes because of the product!
 You were warned!
