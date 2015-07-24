@@ -1,5 +1,5 @@
 [package]
-name = "systemd-crontab-generator"
+name = "systemd-cron-next"
 version = "0.9.0"
 description = "Systemd generator for crontab files support"
 readme = "README.md"
