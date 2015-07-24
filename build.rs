@@ -67,7 +67,7 @@ fn build_render_data() -> BTreeMap<String, Json> {
     ctx.insert("docdir".to_owned(), Json::String(env::var("DOC_DIR").unwrap_or_else(|_| datadir.clone() + "/doc/" + package)));
     ctx.insert("unitdir".to_owned(), Json::String(env::var("UNIT_DIR").unwrap_or_else(|_| libdir.clone() + "/systemd/system")));
 
-    ctx.insert("stale_stamps".to_owned(), Json::String(env::var("STALE_STAMPS").unwrap_or_else(|_| libdir.clone() + package + "remove-stale-stamps")));
+    ctx.insert("stale_stamps".to_owned(), Json::String(env::var("STALE_STAMPS").unwrap_or_else(|_| libdir.clone() + "/" + package + "/remove-stale-stamps")));
 
     ctx.insert("libdir".to_owned(), Json::String(libdir));
     ctx.insert("datadir".to_owned(), Json::String(datadir));
