@@ -6,6 +6,8 @@ RefuseManualStart=yes
 RefuseManualStop=yes
 
 [Timer]
+{{#if persistent}}
 Persistent=true
+{{/if}}
 OnCalendar={{ schedule }}
 Unit=cron-{{ schedule }}.target
