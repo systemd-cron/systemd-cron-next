@@ -22,7 +22,6 @@ use std::fs::File;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{PathBuf, Path};
 use std::process::{Command, exit};
-use std::ops::Deref;
 use std::ffi::CString;
 
 include!(concat!(env!("OUT_DIR"), "/config.rs"));
@@ -108,7 +107,7 @@ fn confirm(msg: &str) -> bool {
     }
 }
 
-fn list(cron_file: &Path, cron_user: &User, args: &Args) -> i32 {
+fn list(cron_file: &Path, cron_user: &User, _args: &Args) -> i32 {
     if let Err(e) = File::open(cron_file).map(|file| file.tee(stdout()).bytes().count()) {
         use std::io::ErrorKind::*;
         match e.kind() {
