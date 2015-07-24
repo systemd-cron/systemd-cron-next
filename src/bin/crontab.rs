@@ -171,7 +171,7 @@ fn edit(cron_file: &Path, cron_user: &User, _args: &Args) -> i32 {
 
     if let Err(e) = File::open(cron_file).map(|file| file.tee(&mut tmpfile).bytes().count()) {
         match e.kind() {
-            NotFound => tmpfile.write_all("# min hour dom month dow command".as_bytes()).unwrap(),
+            NotFound => tmpfile.write_all("# min hour dom month dow command\n".as_bytes()).unwrap(),
             _ => {
                 writeln!(stderr, "error copying crontab file {}: {}", cron_file.display(), e).unwrap();
                 return 1;
