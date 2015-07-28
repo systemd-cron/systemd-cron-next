@@ -47,24 +47,6 @@ null :=
 requires = $(subst ${null} ${null},\n,$(foreach schedule,$(schedules),Requires=cron-$(schedule).timer))
 persistent = $(if $(filter $(enable_persistent),yes),True,False)
 
-# $(call in2out,$input,$output,$schedule,$requires)
-define in2out
-
-	sed \
-		-e "s|\@package\@|$(package)|g" \
-		-e "s|\@confdir\@|$(confdir)|g" \
-		-e "s|\@statedir\@|$(statedir)|g" \
-		-e "s|\@bindir\@|$(bindir)|g" \
-		-e "s|\@libdir\@|$(libdir)|g" \
-		-e "s|\@unitdir\@|$(unitdir)|g" \
-		-e "s|\@runparts\@|$(runparts)|g" \
-		-e "s|\@version\@|$(version)|g" \
-		-e "s|\@persistent\@|$(persistent)|g" \
-		-e "s|\@schedule\@|$3|g" \
-		-e "s|\@requires\@|$4|g" \
-		$1 > $2
-endef
-
 all: $(builddir) $(outputs)
 
 clean:
@@ -136,58 +118,6 @@ uninstall:
 	$(foreach schedule,$(schedules),\
 		rm -f $(DESTDIR)$(unitdir)/cron-$(schedule).service${\n})
 
-
-
-$(builddir)/units/cron-update.path: $(srcdir)/units/cron-update.path.in
-	$(call in2out,$<,$@)
-
-$(builddir)/units/cron-update.service: $(srcdir)/units/cron-update.service.in
-	$(call in2out,$<,$@)
-
-$(builddir)/units/cron-failure@.service: $(srcdir)/units/cron-failure@.service.in
-	$(call in2out,$<,$@)
-
-$(builddir)/units/cron-%.service: $(srcdir)/units/cron-schedule.service.in
-	$(call in2out,$<,$@,$*)
-
-$(builddir)/units/cron-boot.service: $(srcdir)/units/cron-boot.service.in
-	$(call in2out,$<,$@,boot)
-
-$(builddir)/units/cron-%.timer: $(srcdir)/units/cron-schedule.timer.in
-	$(call in2out,$<,$@,$*)
-ifneq ($(enable_persistent),yes)
-	sed -i -e '/^Persistent=/d' $@
-endif
-
-$(builddir)/units/cron-boot.timer: $(srcdir)/units/cron-boot.timer.in
-	$(call in2out,$<,$@,boot)
-
-$(builddir)/units/cron-%.target: $(srcdir)/units/cron-schedule.target.in
-	$(call in2out,$<,$@,$*)
-
-$(builddir)/units/cron.target: $(srcdir)/units/cron.target.in
-	$(call in2out,$<,$@,,$(requires))
-
-$(builddir)/man/%: $(srcdir)/man/%.in
-	$(call in2out,$<,$@)
-
-$(builddir)/man/systemd.cron.7: $(srcdir)/man/systemd.cron.7.in
-	$(call in2out,$<,$@)
-	$(foreach schedule_not,$(schedules_not),\
-		sed -i $@ -e '/cron-$(schedule_not).timer/d' \
-	               -e '/cron\.$(schedule_not)/,+3d' \
-		       -e '/journalctl -u cron-$(schedule_not)/,+1d' ${\n})
-
-$(builddir)/bin/systemd-crontab-generator: $(srcdir)/bin/systemd-crontab-generator.py
-	$(call in2out,$<,$@)
-	# BUG: this should only run if schedule_not in hourly/daily/weekly/monthly
-	$(foreach schedule_not,$(schedules_not),\
-		sed -i $@ -e '/\/etc\/cron.$(schedule_not)/d' ${\n})
-	chmod +x $@
-
-$(builddir)/bin/%: $(srcdir)/bin/%.py
-	$(call in2out,$<,$@)
-	chmod +x $@
 
 $(outputs): | $(builddir)
 
