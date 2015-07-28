@@ -203,7 +203,7 @@ Also check out [comments][] in AUR for current news about Arch package status.
 ## Copyright
 
 Original **[@systemd-cron][]** project:
-- © 2013 Dwayne Bent
+- © 2013-2014 Dwayne Bent
 - © 2013 Dominik Peteler
 - © 2014 Daniel Schaal <farbing@web.de>
 
@@ -213,6 +213,9 @@ Systemd crontab generator evolution, tooling and support:
 
 Original systemd crontab generator code in Python, Rust version:
 - © 2014-2015 Konstantin Stepanov <me@kstep.me>
+
+Systemd crontab generator man-page (*man/systemd-crontab-generator.8.in*):
+- © 2014 Alexandre Detiste <alexandre@detiste.be>
 
 Crontab man-page (*man/crontab.5.in*):
 - © 1988, 1990, 1993, 1994, Paul Vixie <paul@vix.com>
