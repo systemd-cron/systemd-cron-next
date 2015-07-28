@@ -115,8 +115,8 @@ uninstall:
 	rm -f $(DESTDIR)$(bindir)/crontab
 	rm -f $(DESTDIR)$(libdir)/systemd/system-generators/systemd-crontab-generator
 	rm -f $(DESTDIR)$(stale_stamps)
-	rm -f $(DESTDIR)$(libdir)/$(package)/mail_on_failure
-	rm -f $(DESTDIR)$(libdir)/$(package)/boot_delay
+	rm -f $(DESTDIR)$(libdir)/$(package)/mail-on-failure
+	rm -f $(DESTDIR)$(libdir)/$(package)/boot-delay
 
 	rm -f $(DESTDIR)$(mandir)/man7/systemd.cron.7
 	rm -f $(DESTDIR)$(mandir)/man1/crontab.1
