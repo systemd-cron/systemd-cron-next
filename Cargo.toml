@@ -23,8 +23,12 @@ sched-semi-annually = []
 persistent = []
 
 [build-dependencies]
-rumblebars = "*"
 rustc-serialize = "*"
+
+[build-dependencies.rumblebars]
+version = "*"
+features = ["nightly"]
+default-features = false
 
 [dependencies]
 libc = "*"
