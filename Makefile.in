@@ -7,7 +7,6 @@ version		:= $(shell cat VERSION)
 schedules			:= @schedules@
 schedules_not			:= @schedules_not@
 enable_persistent	:= @enable_persistent@
-enable_setgid		:= @enable_setgid@
 
 prefix		:= @prefix@
 bindir		:= @bindir@
@@ -37,7 +36,7 @@ out_units		:= $(out_services) $(out_timers) $(out_targets) $(builddir)/units/cro
                            $(builddir)/units/cron-failure@.service
 out_manuals		:= $(patsubst $(srcdir)/man/%.in,$(builddir)/man/%,$(wildcard $(srcdir)/man/*))
 out_programs		:= $(patsubst $(srcdir)/bin/%.py,$(builddir)/bin/%,$(wildcard $(srcdir)/bin/*.py))
-outputs			:= $(out_units) $(out_manuals) $(out_programs) $(builddir)/bin/crontab_setgid
+outputs			:= $(out_units) $(out_manuals) $(out_programs)
 
 define \n
 
@@ -93,13 +92,6 @@ install: all
 	install -m755 -D $(builddir)/bin/remove_stale_stamps $(DESTDIR)$(stale_stamps)
 	install -m755 -D $(builddir)/bin/mail_on_failure $(DESTDIR)$(libdir)/$(package)/mail_on_failure
 	install -m755 -D $(builddir)/bin/boot_delay $(DESTDIR)$(libdir)/$(package)/boot_delay
-ifneq ($(enable_setgid),no)
-	install -m755 -D $(builddir)/bin/crontab_setgid $(DESTDIR)$(libdir)/$(package)/crontab_setgid
-	if getent group cron > /dev/null 2>&1; then \
-	    chgrp cron $(DESTDIR)$(libdir)/$(package)/crontab_setgid ; \
-	    chmod 2755 $(DESTDIR)$(libdir)/$(package)/crontab_setgid ; \
-	fi
-endif
 
 	install -m644 -D $(builddir)/man/systemd.cron.7 $(DESTDIR)$(mandir)/man7/systemd.cron.7
 	install -m644 -D $(builddir)/man/crontab.1 $(DESTDIR)$(mandir)/man1/crontab.1
@@ -125,7 +117,6 @@ uninstall:
 	rm -f $(DESTDIR)$(stale_stamps)
 	rm -f $(DESTDIR)$(libdir)/$(package)/mail_on_failure
 	rm -f $(DESTDIR)$(libdir)/$(package)/boot_delay
-	rm -f $(DESTDIR)$(libdir)/$(package)/crontab_setgid
 
 	rm -f $(DESTDIR)$(mandir)/man7/systemd.cron.7
 	rm -f $(DESTDIR)$(mandir)/man1/crontab.1
@@ -197,11 +188,6 @@ $(builddir)/bin/systemd-crontab-generator: $(srcdir)/bin/systemd-crontab-generat
 $(builddir)/bin/%: $(srcdir)/bin/%.py
 	$(call in2out,$<,$@)
 	chmod +x $@
-
-$(builddir)/bin/crontab_setgid: $(srcdir)/bin/crontab_setgid.c
-ifneq ($(enable_setgid),no)
-	$(CC) $(CFLAGS) $(LDFLAGS) $< -DCRONTAB_DIR='"$(statedir)"' -o $@
-endif
 
 $(outputs): | $(builddir)
 
