@@ -59,6 +59,35 @@ templates and main algorithms and solutions polished in Python version by **[@sy
 [Rust]: http://www.rust-lang.org
 [announce]: http://blog.rust-lang.org/2015/05/15/Rust-1.0.html
 
+## Usage
+
+The generator runs on system boot and when the crontabs change.
+
+The project includes simple `crontab` command equivalent, which behaves like standard crontab command
+(and accepts the same main options).
+
+After installation add executable scripts to the appropriate cron directory (e.g. `/etc/cron.daily`)
+and enable systemd-cron:
+
+    # systemctl daemon-reload
+    # systemctl enable cron.target
+    # systemctl start cron.target
+
+The scripts should now be automatically run by systemd. See man:systemd.cron(7) for more information.
+
+To further control cron jobs, use `cron.target` unit.
+
+## Dependencies
+
+* systemd ≥ 197
+    * systemd ≥ 209, yearly timers
+    * systemd ≥ 212, persistent timers
+    * systemd ≥ 217, minutely, quarterly & semi-annually timers
+* [run-parts][]
+* /usr/sbin/sendmail (optional, evaluated at runtime)
+
+[run-parts]: http://packages.qa.debian.org/d/debianutils.html "debianutils"
+
 ## Installation
 
 If you are on [Archlinux][arch], install from [AUR][aur], otherwise see `PKGBUILD` file and
@@ -67,17 +96,84 @@ execute commands from `package()` sub.
 [arch]: https://www.archlinux.org/
 [aur]: https://aur.archlinux.org/packages/systemd-crontab-generator/
 
-## Usage
+## Packaging
 
-The generator runs on system boot and when the crontabs change.
+### Building
 
-The project includes simple `crontab` command equivalent, which behaves like standard crontab command
-(and accepts the same main options).
+    $ ./configure
+    $ make
 
-To control cron jobs, use `cron.target`, e.g. to start and enable cron after installation:
+You will need [Rust nightly][rust-install] compiler and cargo tool to build the project.
+If you don't have Rust nightly installed, it will be downloaded to `rust` subdirectory
+in the project directory. You don't need Rust to use systemd-cron, it's a build only
+dependency.
 
-    # systemctl enable cron.target
-    # systemctl start cron.target
+[rust-install]: http://www.rust-lang.org/install.html
+
+### Staging
+
+    $ make DESTDIR="$destdir" install
+
+### Configuration
+
+The `configure` script takes command line arguments to configure various details of the build. The following options
+follow the standard GNU [installation directories][4]:
+
+* `--prefix=<path>`
+* `--bindir=<path>`
+* `--confdir=<path>`
+* `--datadir=<path>`
+* `--libdir=<path>`
+* `--statedir=<path>`
+* `--mandir=<path>`
+* `--docdir=<path>`
+
+Other options include:
+
+* `--unitdir=<path>` Path to systemd unit files.
+  Default: `<libdir>/systemd/system`.
+* `--runpaths=<path>` The path installations should use for the `run-parts` executable.
+  Default: `<prefix>/bin/run-parts`.
+* `--enable-boot[=yes|no]` Include support for the boot timer.
+  Default: `yes`.
+* `--enable-minutely[=yes|no]` Include support for the minutely timer. Requires systemd ≥ 217.
+  Default: `no`.
+* `--enable-hourly[=yes|no]` Include support for the hourly timer.
+  Default: `yes`.
+* `--enable-daily[=yes|no]` Include support for the daily timer.
+  Default: `yes`.
+* `--enable-weekly[=yes|no]` Include support for the weekly timer.
+  Default: `yes`.
+* `--enable-monthly[=yes|no]` Include support for the monthly timer.
+  Default: `yes`.
+* `--enable-quarterly[=yes|no]` Include support for the quarterly timer. Requires systemd ≥ 217.
+  Default: `no`.
+* `--enable-semi_annually[=yes|no]` Include support for the semi-annually timer. Requires systemd ≥ 217.
+  Default: `no`.
+* `--enable-yearly[=yes|no]` Include support for the yearly timer. Requires systemd ≥ 209.
+  Default: `no`.
+* `--enable-persistent[=yes|no]` Make timers [persistent][5]. Requires systemd ≥ 212.
+  Default: `no`.
+
+A typical configuration for the latest systemd would be:
+
+    $ ./configure --prefix=/usr --confdir=/etc --enable-yearly --enable-persistent
+
+If you only want the generator (you'll have to provide your own `/etc/crontab` to drive /etc/cron.daily/ etc...):
+
+    $ ./configure --enable-boot=no --enable-hourly=no --enable-daily=no --enable-weekly=no --enable-month=no --enable-persistent --prefix=/usr --confdir=/etc
+
+### Caveat
+
+Your package should also run these extra commands before starting cron.target
+to ensure that @reboot scripts doesn't trigger right away:
+
+    # touch /run/crond.reboot
+    # touch /run/crond.bootdir
+
+## See Also
+
+`systemd.cron(7)` or in source tree `man -l src/man/systemd.cron.7`
 
 ## Disclaimer
 
@@ -91,7 +187,6 @@ You were warned!
 
 The main part of a project is licensed under [MIT][].
 Crontab man page is derived from [Vixie Cron][vixie] and licensed under *Paul-Vixie's-license*.
-Don't forget to attribute if you derive from the work!
 
 [vixie]: https://wiki.gentoo.org/wiki/Cron#vixie-cron
 [MIT]: http://opensource.org/licenses/MIT
