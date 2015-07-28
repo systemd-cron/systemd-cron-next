@@ -1,0 +1,224 @@
+CFLAGS ?= -O2
+CFLAGS += -Wall
+
+package		:= $(shell cat README.md | head -n1)
+version		:= $(shell cat VERSION)
+
+schedules			:= @schedules@
+schedules_not			:= @schedules_not@
+enable_persistent	:= @enable_persistent@
+enable_setgid		:= @enable_setgid@
+
+prefix		:= @prefix@
+bindir		:= @bindir@
+confdir		:= @confdir@
+datadir		:= @datadir@
+libdir		:= @libdir@
+statedir	:= @statedir@
+mandir		:= @mandir@
+docdir		:= @docdir@
+unitdir		:= @unitdir@
+
+runparts	:= @runparts@
+stale_stamps	:= @stale_stamps@
+
+srcdir		:= $(CURDIR)/src
+outdir		:= $(CURDIR)/out
+builddir	:= $(outdir)/build
+distname	:= $(package)-$(version)
+distdir		:= $(outdir)/dist/$(distname)
+tarball		:= $(outdir)/dist/$(distname).tar.xz
+
+out_services	:= $(foreach schedule,$(schedules),$(builddir)/units/cron-$(schedule).service)
+out_timers		:= $(foreach schedule,$(schedules),$(builddir)/units/cron-$(schedule).timer)
+out_targets		:= $(foreach schedule,$(schedules),$(builddir)/units/cron-$(schedule).target)
+out_units		:= $(out_services) $(out_timers) $(out_targets) $(builddir)/units/cron.target \
+                           $(builddir)/units/cron-update.path $(builddir)/units/cron-update.service \
+                           $(builddir)/units/cron-failure@.service
+out_manuals		:= $(patsubst $(srcdir)/man/%.in,$(builddir)/man/%,$(wildcard $(srcdir)/man/*))
+out_programs		:= $(patsubst $(srcdir)/bin/%.py,$(builddir)/bin/%,$(wildcard $(srcdir)/bin/*.py))
+outputs			:= $(out_units) $(out_manuals) $(out_programs) $(builddir)/bin/crontab_setgid
+
+define \n
+
+
+endef
+
+null :=
+requires = $(subst ${null} ${null},\n,$(foreach schedule,$(schedules),Requires=cron-$(schedule).timer))
+persistent = $(if $(filter $(enable_persistent),yes),True,False)
+
+# $(call in2out,$input,$output,$schedule,$requires)
+define in2out
+
+	sed \
+		-e "s|\@package\@|$(package)|g" \
+		-e "s|\@confdir\@|$(confdir)|g" \
+		-e "s|\@statedir\@|$(statedir)|g" \
+		-e "s|\@bindir\@|$(bindir)|g" \
+		-e "s|\@libdir\@|$(libdir)|g" \
+		-e "s|\@unitdir\@|$(unitdir)|g" \
+		-e "s|\@runparts\@|$(runparts)|g" \
+		-e "s|\@version\@|$(version)|g" \
+		-e "s|\@persistent\@|$(persistent)|g" \
+		-e "s|\@schedule\@|$3|g" \
+		-e "s|\@requires\@|$4|g" \
+		$1 > $2
+endef
+
+all: $(builddir) $(outputs)
+
+clean:
+	rm -rf $(outdir)
+
+distprep: $(distdir)
+	cp -a configure		$(distdir)
+	cp -a Makefile.in	$(distdir)
+	cp -a LICENSE		$(distdir)
+	cp -a README.md		$(distdir)
+	cp -a VERSION		$(distdir)
+	cp -a src			$(distdir)
+
+dist: $(tarball)
+
+test: all
+	$(foreach manpage,$(out_manuals),\
+		man --warnings --encoding=utf8 --local-file $(manpage) 2>&1 > /dev/null${\n})
+	$(foreach program,$(out_programs),\
+		pyflakes3 $(program) ${\n})
+
+install: all
+	install -m755 -D $(builddir)/bin/crontab $(DESTDIR)$(bindir)/crontab
+	install -m755 -D $(builddir)/bin/systemd-crontab-generator $(DESTDIR)$(libdir)/systemd/system-generators/systemd-crontab-generator
+	install -m755 -D $(builddir)/bin/remove_stale_stamps $(DESTDIR)$(stale_stamps)
+	install -m755 -D $(builddir)/bin/mail_on_failure $(DESTDIR)$(libdir)/$(package)/mail_on_failure
+	install -m755 -D $(builddir)/bin/boot_delay $(DESTDIR)$(libdir)/$(package)/boot_delay
+ifneq ($(enable_setgid),no)
+	install -m755 -D $(builddir)/bin/crontab_setgid $(DESTDIR)$(libdir)/$(package)/crontab_setgid
+	if getent group cron > /dev/null 2>&1; then \
+	    chgrp cron $(DESTDIR)$(libdir)/$(package)/crontab_setgid ; \
+	    chmod 2755 $(DESTDIR)$(libdir)/$(package)/crontab_setgid ; \
+	fi
+endif
+
+	install -m644 -D $(builddir)/man/systemd.cron.7 $(DESTDIR)$(mandir)/man7/systemd.cron.7
+	install -m644 -D $(builddir)/man/crontab.1 $(DESTDIR)$(mandir)/man1/crontab.1
+	install -m644 -D $(builddir)/man/crontab.5 $(DESTDIR)$(mandir)/man5/crontab.5
+	install -m644 -D $(builddir)/man/anacrontab.5 $(DESTDIR)$(mandir)/man5/anacrontab.5
+	install -m644 -D $(builddir)/man/systemd-crontab-generator.8 $(DESTDIR)$(mandir)/man8/systemd-crontab-generator.8
+
+	install -m644 -D $(builddir)/units/cron.target $(DESTDIR)$(unitdir)/cron.target
+	install -m644 $(builddir)/units/cron-update.path $(DESTDIR)$(unitdir)
+	install -m644 $(builddir)/units/cron-update.service $(DESTDIR)$(unitdir)
+	install -m644 $(builddir)/units/cron-failure@.service $(DESTDIR)$(unitdir)
+
+	$(foreach schedule,$(schedules),\
+		install -m644 $(builddir)/units/cron-$(schedule).timer $(DESTDIR)$(unitdir)${\n})
+	$(foreach schedule,$(schedules),\
+		install -m644 $(builddir)/units/cron-$(schedule).target $(DESTDIR)$(unitdir)${\n})
+	$(foreach schedule,$(schedules),\
+		install -m644 $(builddir)/units/cron-$(schedule).service $(DESTDIR)$(unitdir)${\n})
+
+uninstall:
+	rm -f $(DESTDIR)$(bindir)/crontab
+	rm -f $(DESTDIR)$(libdir)/systemd/system-generators/systemd-crontab-generator
+	rm -f $(DESTDIR)$(stale_stamps)
+	rm -f $(DESTDIR)$(libdir)/$(package)/mail_on_failure
+	rm -f $(DESTDIR)$(libdir)/$(package)/boot_delay
+	rm -f $(DESTDIR)$(libdir)/$(package)/crontab_setgid
+
+	rm -f $(DESTDIR)$(mandir)/man7/systemd.cron.7
+	rm -f $(DESTDIR)$(mandir)/man1/crontab.1
+	rm -f $(DESTDIR)$(mandir)/man5/crontab.5
+	rm -f $(DESTDIR)$(mandir)/man5/anacrontab.5
+	rm -f $(DESTDIR)$(mandir)/man8/systemd-crontab-generator.8
+
+	rm -f $(DESTDIR)$(unitdir)/cron.target
+	rm -f $(DESTDIR)$(unitdir)/cron-update.path
+	rm -f $(DESTDIR)$(unitdir)/cron-update.service
+	rm -f $(DESTDIR)$(unitdir)/cron-failure@.service
+
+	$(foreach schedule,$(schedules),\
+		rm -f $(DESTDIR)$(unitdir)/cron-$(schedule).timer${\n})
+	$(foreach schedule,$(schedules),\
+		rm -f $(DESTDIR)$(unitdir)/cron-$(schedule).target${\n})
+	$(foreach schedule,$(schedules),\
+		rm -f $(DESTDIR)$(unitdir)/cron-$(schedule).service${\n})
+
+
+
+$(builddir)/units/cron-update.path: $(srcdir)/units/cron-update.path.in
+	$(call in2out,$<,$@)
+
+$(builddir)/units/cron-update.service: $(srcdir)/units/cron-update.service.in
+	$(call in2out,$<,$@)
+
+$(builddir)/units/cron-failure@.service: $(srcdir)/units/cron-failure@.service.in
+	$(call in2out,$<,$@)
+
+$(builddir)/units/cron-%.service: $(srcdir)/units/cron-schedule.service.in
+	$(call in2out,$<,$@,$*)
+
+$(builddir)/units/cron-boot.service: $(srcdir)/units/cron-boot.service.in
+	$(call in2out,$<,$@,boot)
+
+$(builddir)/units/cron-%.timer: $(srcdir)/units/cron-schedule.timer.in
+	$(call in2out,$<,$@,$*)
+ifneq ($(enable_persistent),yes)
+	sed -i -e '/^Persistent=/d' $@
+endif
+
+$(builddir)/units/cron-boot.timer: $(srcdir)/units/cron-boot.timer.in
+	$(call in2out,$<,$@,boot)
+
+$(builddir)/units/cron-%.target: $(srcdir)/units/cron-schedule.target.in
+	$(call in2out,$<,$@,$*)
+
+$(builddir)/units/cron.target: $(srcdir)/units/cron.target.in
+	$(call in2out,$<,$@,,$(requires))
+
+$(builddir)/man/%: $(srcdir)/man/%.in
+	$(call in2out,$<,$@)
+
+$(builddir)/man/systemd.cron.7: $(srcdir)/man/systemd.cron.7.in
+	$(call in2out,$<,$@)
+	$(foreach schedule_not,$(schedules_not),\
+		sed -i $@ -e '/cron-$(schedule_not).timer/d' \
+	               -e '/cron\.$(schedule_not)/,+3d' \
+		       -e '/journalctl -u cron-$(schedule_not)/,+1d' ${\n})
+
+$(builddir)/bin/systemd-crontab-generator: $(srcdir)/bin/systemd-crontab-generator.py
+	$(call in2out,$<,$@)
+	# BUG: this should only run if schedule_not in hourly/daily/weekly/monthly
+	$(foreach schedule_not,$(schedules_not),\
+		sed -i $@ -e '/\/etc\/cron.$(schedule_not)/d' ${\n})
+	chmod +x $@
+
+$(builddir)/bin/%: $(srcdir)/bin/%.py
+	$(call in2out,$<,$@)
+	chmod +x $@
+
+$(builddir)/bin/crontab_setgid: $(srcdir)/bin/crontab_setgid.c
+ifneq ($(enable_setgid),no)
+	$(CC) $(CFLAGS) $(LDFLAGS) $< -DCRONTAB_DIR='"$(statedir)"' -o $@
+endif
+
+$(outputs): | $(builddir)
+
+$(outdir):
+	mkdir -p $@
+
+$(builddir):
+	mkdir -p $@
+	mkdir -p $@/bin
+	mkdir -p $@/man
+	mkdir -p $@/units
+
+$(distdir):
+	mkdir -p $(distdir)
+
+$(tarball): distprep
+	cd $(distdir)/..; tar -cJ --owner=root --group=root --file $(tarball) $(distname)
+
+.PHONY: all clean dist distprep install uninstall
+
