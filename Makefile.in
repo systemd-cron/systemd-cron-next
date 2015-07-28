@@ -71,13 +71,13 @@ build: all
 		target/release/mail-on-failure \
 		target/release/boot-delay \
 		$(builddir)/bin/
-	cp -a target/release/build/systemd-cron-next-*/out/*.service \
-		target/release/build/systemd-cron-next-*/out/*.timer \
-		target/release/build/systemd-cron-next-*/out/*.path \
+	cp -a target/release/build/systemd-crontab-generator-*/out/*.service \
+		target/release/build/systemd-crontab-generator-*/out/*.timer \
+		target/release/build/systemd-crontab-generator-*/out/*.path \
 		$(builddir)/units/
-	cp -a target/release/build/systemd-cron-next-*/out/*.1 \
-		target/release/build/systemd-cron-next-*/out/*.5 \
-		target/release/build/systemd-cron-next-*/out/*.7 \
+	cp -a target/release/build/systemd-crontab-generator-*/out/*.1 \
+		target/release/build/systemd-crontab-generator-*/out/*.5 \
+		target/release/build/systemd-crontab-generator-*/out/*.7 \
 		$(builddir)/man/
 
 install: build
