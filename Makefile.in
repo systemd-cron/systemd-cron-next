@@ -1,5 +1,5 @@
 package		:= $(shell cat README.md | head -n1)
-version		:= $(shell cat VERSION)
+version		:= $(shell awk '/^version =/ { gsub("\"", "", $$3); print $$3; exit }' Cargo.toml)
 
 schedules			:= @schedules@
 enable_persistent	:= @enable_persistent@
