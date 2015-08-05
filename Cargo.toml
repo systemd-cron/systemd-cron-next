@@ -29,6 +29,8 @@ rustc-serialize = "*"
 version = "*"
 features = ["nightly"]
 default-features = false
+git = "https://github.com/kstep/rumblebars"
+branch = "patch-1"
 
 [dependencies]
 libc = "*"
