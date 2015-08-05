@@ -1,4 +1,3 @@
-#![feature(slice_position_elem)]
 #![feature(duration)]
 #![feature(thread_sleep)]
 
@@ -22,7 +21,8 @@ fn main() {
     let uptime = File::open("/proc/uptime")
         .and_then(|ref mut file| file.read(&mut buf))
         .map(|sz| {
-            buf.position_elem(&0x20)
+            buf.iter()
+               .position(|&c| c == 0x20)
                .and_then(|p| if p < sz {
                    unsafe { transmute::<_, &str>(&buf[..p]) }.parse::<f32>().ok()
                } else {
