@@ -81,7 +81,7 @@ build: all
 		$(builddir)/man/
 
 install: build
-	install -m1755 -s -D $(builddir)/bin/crontab $(DESTDIR)$(bindir)/crontab
+	install -m2755 -g `getent group cron || echo root` -s -D $(builddir)/bin/crontab $(DESTDIR)$(bindir)/crontab
 	install -m755 -s -D $(builddir)/bin/systemd-crontab-generator $(DESTDIR)$(libdir)/systemd/system-generators/systemd-crontab-generator
 	install -m755 -s -D $(builddir)/bin/remove-stale-stamps $(DESTDIR)$(stale_stamps)
 	install -m755 -s -D $(builddir)/bin/mail-on-failure $(DESTDIR)$(libdir)/$(package)/mail-on-failure
