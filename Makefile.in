@@ -70,7 +70,8 @@ build: all
 		target/release/mail-on-failure \
 		target/release/boot-delay \
 		$(builddir)/bin/
-	cp -a target/release/build/systemd-crontab-generator-*/out/*.service \
+	cp -a target/release/build/systemd-crontab-generator-*/out/*.target \
+		target/release/build/systemd-crontab-generator-*/out/*.service \
 		target/release/build/systemd-crontab-generator-*/out/*.timer \
 		target/release/build/systemd-crontab-generator-*/out/*.path \
 		$(builddir)/units/
