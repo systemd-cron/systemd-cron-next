@@ -23,7 +23,7 @@ enable_yearly=no
 
 # systemd ≥ 212
 enable_persistent=no
-stale_stamps='$(libdir)/$(package)/remove_stale_stamps'
+stale_stamps='$(libdir)/$(package)/remove-stale-stamps'
 
 # systemd ≥ 217
 enable_minutely=no
