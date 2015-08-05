@@ -1,4 +1,4 @@
-package		:= $(shell cat README.md | head -n1)
+package		:= $(shell head -n1 README.md)
 version		:= $(shell awk '/^version =/ { gsub("\"", "", $$3); print $$3; exit }' Cargo.toml)
 
 schedules			:= @schedules@
