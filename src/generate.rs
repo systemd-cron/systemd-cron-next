@@ -156,8 +156,8 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
         let md5hex = tohex(&md5ctx.compute());
 
         // create service and timer unit names
-        let service_unit_name = format!("cronjob-{}.service", md5hex);
-        let timer_unit_name = format!("cronjob-{}.timer", md5hex);
+        let service_unit_name = format!("cron-{}.service", md5hex);
+        let timer_unit_name = format!("cron-{}.timer", md5hex);
 
         // unit paths
         let service_unit_path = dstdir.join(&service_unit_name);
@@ -171,7 +171,7 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
         let command = if Path::new(cmd).is_file() {
             cmd.to_owned()
         } else {
-            let script_command_path = dstdir.join(format!("cronjob-{}.sh", md5hex));
+            let script_command_path = dstdir.join(format!("cron-{}.sh", md5hex));
 
             debug!("generating script {:?} from {:?}", script_command_path, path);
             {
