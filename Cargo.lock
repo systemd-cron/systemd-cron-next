@@ -9,11 +9,20 @@ dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "md5 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "rumblebars 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rumblebars 0.3.0 (git+https://github.com/kstep/rumblebars?branch=patch-1)",
  "rustc-serialize 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempfile 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "time 0.1.31 (registry+https://github.com/rust-lang/crates.io-index)",
- "users 0.4.2 (git+https://github.com/kstep/rust-users.git)",
+ "time 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
+ "users 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "advapi32-sys"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "winapi 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -50,7 +59,7 @@ version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "winapi 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi-build 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -63,7 +72,7 @@ dependencies = [
 
 [[package]]
 name = "lazy_static"
-version = "0.1.12"
+version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -94,10 +103,12 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.3.8"
+version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
+ "advapi32-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -118,9 +129,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "rumblebars"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/kstep/rumblebars?branch=patch-1#c6bfdb106b9bf9fa0c32c350d342c31879e722b8"
 dependencies = [
- "lazy_static 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustlex 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -159,13 +170,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "kernel32-sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.1.23 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "time"
-version = "0.1.31"
+version = "0.1.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "kernel32-sys 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -175,8 +186,8 @@ dependencies = [
 
 [[package]]
 name = "users"
-version = "0.4.2"
-source = "git+https://github.com/kstep/rust-users.git#7c19c92fd74ed7e2114df476fbd56edf4f361805"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -196,6 +207,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "winapi-build"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
