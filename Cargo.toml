@@ -40,12 +40,9 @@ glob = "*"
 docopt = "*"
 rustc-serialize = "*"
 tempfile = "*"
+users = "*"
 
 [dependencies.kernlog]
 version = "*"
 features = ["nightly"]
 #path = "/home/kstep/git/rust/kernlog"
-
-[dependencies.users]
-version = "*"
-git = "https://github.com/kstep/rust-users.git"
