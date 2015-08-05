@@ -1,9 +1,9 @@
 # Maintainer: Konstantin Stepanov <me@kstep.me>
-pkgname=systemd-crontab-generator
+pkgname=systemd-cron
 pkgver=0.9.0
 pkgrel=1
 pkgdesc="systemd generator to generate timers/services from crontab and anacrontab files"
-url="https://github.com/systemd-cron/systemd-crontab-generator"
+url="https://github.com/systemd-cron/systemd-cron-next"
 arch=('any')
 license=('GPL3')
 depends=('systemd')
@@ -27,11 +27,12 @@ prepare() {
 }
 
 build() {
-    cd "$srcdir/systemd-crontab-generator-master"
-    make release
+    cd "$srcdir/systemd-cron-next-master"
+    ./configure --prefix="$pkgdir/usr"
+    make build
 }
 
 package() {
-    cd "$srcdir/systemd-crontab-generator-master"
-    make install PREFIX="$pkgdir/usr"
+    cd "$srcdir/systemd-cron-next-master"
+    make install
 }
