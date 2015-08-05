@@ -15,7 +15,6 @@ docdir		:= @docdir@
 unitdir		:= @unitdir@
 
 runparts	:= @runparts@
-stale_stamps	:= @stale_stamps@
 
 srcdir		:= $(CURDIR)/src
 outdir		:= $(CURDIR)/out
@@ -75,15 +74,13 @@ build: all
 		target/release/build/systemd-crontab-generator-*/out/*.timer \
 		target/release/build/systemd-crontab-generator-*/out/*.path \
 		$(builddir)/units/
-	cp -a target/release/build/systemd-crontab-generator-*/out/*.1 \
-		target/release/build/systemd-crontab-generator-*/out/*.5 \
-		target/release/build/systemd-crontab-generator-*/out/*.7 \
+	cp -a target/release/build/systemd-crontab-generator-*/out/*.[1578] \
 		$(builddir)/man/
 
 install: build
 	install -m2755 -g `getent group cron || echo root` -s -D $(builddir)/bin/crontab $(DESTDIR)$(bindir)/crontab
 	install -m755 -s -D $(builddir)/bin/systemd-crontab-generator $(DESTDIR)$(libdir)/systemd/system-generators/systemd-crontab-generator
-	install -m755 -s -D $(builddir)/bin/remove-stale-stamps $(DESTDIR)$(stale_stamps)
+	install -m755 -s -D $(builddir)/bin/remove-stale-stamps $(DESTDIR)$(libdir)/$(package)/remove-stale-stamps
 	install -m755 -s -D $(builddir)/bin/mail-on-failure $(DESTDIR)$(libdir)/$(package)/mail-on-failure
 	install -m755 -s -D $(builddir)/bin/boot-delay $(DESTDIR)$(libdir)/$(package)/boot-delay
 
@@ -108,7 +105,7 @@ install: build
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/crontab
 	rm -f $(DESTDIR)$(libdir)/systemd/system-generators/systemd-crontab-generator
-	rm -f $(DESTDIR)$(stale_stamps)
+	rm -f $(DESTDIR)$(libdir)/$(package)/remove-stale-stamps
 	rm -f $(DESTDIR)$(libdir)/$(package)/mail-on-failure
 	rm -f $(DESTDIR)$(libdir)/$(package)/boot-delay
 
