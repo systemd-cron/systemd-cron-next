@@ -27,8 +27,6 @@ rustc-serialize = "*"
 
 [build-dependencies.rumblebars]
 version = "*"
-features = ["nightly"]
-default-features = false
 git = "https://github.com/nicolas-cherel/rumblebars.git"
 
 [dependencies]
@@ -45,5 +43,4 @@ users = "*"
 
 [dependencies.kernlog]
 version = "*"
-features = ["nightly"]
 #path = "/home/kstep/git/rust/kernlog"
