@@ -1,4 +1,3 @@
-#![feature(convert)]
 #![feature(io)]
 
 extern crate rustc_serialize;
@@ -31,7 +30,7 @@ extern "C" {
 }
 
 fn change_owner<P: AsRef<Path>>(path: P, owner: libc::uid_t, group: libc::gid_t) -> Result<(), io::Error> {
-    match unsafe { chown(CString::new(path.as_ref().as_os_str().to_bytes().unwrap()).unwrap().as_ptr(), owner, group) } {
+    match unsafe { chown(CString::new(path.as_ref().to_str().unwrap().as_bytes()).unwrap().as_ptr(), owner, group) } {
         0 => Ok(()),
         -1 => Err(io::Error::last_os_error()),
         _ => unreachable!()
