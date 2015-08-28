@@ -1,10 +1,7 @@
-#![feature(thread_sleep)]
-
 use std::fs::File;
 use std::io::Read;
 use std::mem::transmute;
-use std::thread::sleep;
-use std::time::Duration;
+use std::thread::sleep_ms;
 use std::env;
 
 fn main() {
@@ -31,6 +28,6 @@ fn main() {
         .unwrap();
 
     if delay > uptime {
-        sleep(Duration::from_secs((delay - uptime) as u64));
+        sleep_ms((delay - uptime) as u32 * 1000);
     }
 }
