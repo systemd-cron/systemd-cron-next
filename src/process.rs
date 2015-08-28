@@ -1,5 +1,5 @@
 use std::convert::AsRef;
-use std::fs::{read_dir, PathExt};
+use std::fs::{read_dir, PathExt, metadata};
 use std::path::{Path, PathBuf};
 use std::collections::BTreeMap;
 
@@ -10,7 +10,7 @@ use generate::generate_systemd_units;
 
 pub fn process_crontab_dir<T: ToCrontabEntry, D: AsRef<Path>>(srcdir: &str, dstdir: D) {
     let files = read_dir(srcdir).and_then(|fs| fs.map(|r| r.map(|p| p.path()))
-                                       .filter(|r| r.as_ref().map(|p| p.is_file()).unwrap_or(true))
+                                       .filter(|r| r.as_ref().map(|p| metadata(p).map(|m| m.is_file()).unwrap_or(true)).unwrap_or(true))
                                        .collect::<Result<Vec<PathBuf>, _>>());
     match files {
         Err(err) => error!("error processing directory {}: {}", srcdir, err),

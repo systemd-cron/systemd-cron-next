@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 use std::fmt::Display;
-use std::fs::{PathExt, File, create_dir_all, set_permissions};
+use std::fs::{File, create_dir_all, set_permissions, metadata};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{symlink, MetadataExt, PermissionsExt};
 use std::path::Path;
@@ -20,7 +20,7 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
 
     info!("generating units for {}: \"{}\", {:?}", path.display(), entry, env);
 
-    let owner = try!(path.metadata()).uid();
+    let owner = try!(metadata(path)).uid();
 
     let mut persistent = env.get("PERSISTENT").and_then(|v| match &**v {
         "yes" | "true" | "1" => Some(true),
@@ -40,7 +40,7 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
     let mut delay = env.get("DELAY").and_then(|v| v.parse::<u64>().ok()).unwrap_or(0);
     let hour = env.get("START_HOURS_RANGE").and_then(|v| v.splitn(1, '-').next().and_then(|v| v.parse::<u64>().ok())).unwrap_or(0);
     let shell = env.get("SHELL").map(|v| &**v).unwrap_or("/bin/sh");
-    let daemon_reload = Path::new(REBOOT_FILE).is_file();
+    let daemon_reload = metadata(REBOOT_FILE).map(|m| m.is_file()).unwrap_or(false);
 
     let schedule = entry.period().and_then(|period| match *period {
         Period::Reboot => {
@@ -168,7 +168,7 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
         try!(create_dir_all(&cron_target_wants_path));
 
         // process command in case it should be put into script
-        let command = if Path::new(cmd).is_file() {
+        let command = if metadata(cmd).map(|m| m.is_file()).unwrap_or(false) {
             cmd.to_owned()
         } else {
             let script_command_path = dstdir.join(format!("cron-{}.sh", md5hex));
@@ -180,7 +180,7 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
                 try!(writeln!(script_command_file, "{}", cmd));
             }
 
-            let mut perms = try!(script_command_path.metadata()).permissions();
+            let mut perms = try!(metadata(&script_command_path)).permissions();
             perms.set_mode(0o755);
             try!(set_permissions(&script_command_path, perms));
             script_command_path.to_str().unwrap().to_owned()

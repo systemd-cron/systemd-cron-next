@@ -1,5 +1,3 @@
-#![feature(path_ext)]
-
 extern crate cronparse;
 extern crate libc;
 extern crate md5;
@@ -11,7 +9,7 @@ extern crate kernlog;
 
 use std::thread::spawn;
 use std::env;
-use std::fs::{File, PathExt, create_dir_all};
+use std::fs::{File, create_dir_all, metadata};
 use std::os::unix::fs::symlink;
 use std::io::Write;
 use std::path::Path;
@@ -49,7 +47,7 @@ fn main() {
 
     let s = dest_dir.clone();
     let user_thread = spawn(move || {
-        if !Path::new(USERS_CRONTAB_DIR).is_dir() {
+        if !metadata(USERS_CRONTAB_DIR).map(|m| m.is_dir()).unwrap_or(false) {
             return generate_after_var_unit(&*s);
         }
 
