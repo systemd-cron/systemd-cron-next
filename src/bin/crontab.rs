@@ -1,5 +1,3 @@
-#![feature(io)]
-
 extern crate rustc_serialize;
 extern crate docopt;
 extern crate users;
@@ -16,7 +14,7 @@ use libc::{uid_t, gid_t};
 use users::User;
 use std::env;
 use std::fs;
-use std::io::{stdin, stdout, stderr, Write, Read, self};
+use std::io::{stdin, stdout, stderr, Write, Read, self, copy};
 use std::fs::File;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{PathBuf, Path};
@@ -107,7 +105,7 @@ fn confirm(msg: &str) -> bool {
 }
 
 fn list(cron_file: &Path, cron_user: &User, _args: &Args) -> i32 {
-    if let Err(e) = File::open(cron_file).map(|file| file.tee(stdout()).bytes().count()) {
+    if let Err(e) = File::open(cron_file).map(|mut file| copy(&mut file, &mut stdout())) {
         use std::io::ErrorKind::*;
         match e.kind() {
             NotFound => println!("no crontab for {}", cron_user.name),
@@ -168,7 +166,7 @@ fn edit(cron_file: &Path, cron_user: &User, _args: &Args) -> i32 {
 
     let mut tmpfile = NamedTempFile::new_in(USERS_CRONTAB_DIR).unwrap();
 
-    if let Err(e) = File::open(cron_file).map(|file| file.tee(&mut tmpfile).bytes().count()) {
+    if let Err(e) = File::open(cron_file).map(|mut file| copy(&mut file, &mut tmpfile)) {
         match e.kind() {
             NotFound => tmpfile.write_all("# min hour dom month dow command\n".as_bytes()).unwrap(),
             _ => {
@@ -209,8 +207,8 @@ fn replace(cron_file: &Path, cron_user: &User, args: &Args) -> i32 {
     let mut tmpfile = NamedTempFile::new_in(USERS_CRONTAB_DIR).unwrap();
 
     match args.arg_file {
-        Some(ref name) if &**name == "-" => { stdin().tee(&mut tmpfile).bytes().count(); },
-        Some(ref name) => { File::open(&**name).unwrap().tee(&mut tmpfile).bytes().count(); },
+        Some(ref name) if &**name == "-" => { let _ = copy(&mut stdin(), &mut tmpfile); },
+        Some(ref name) => { let _ = copy(&mut File::open(&**name).unwrap(), &mut tmpfile); },
         None => unreachable!()
     }
 
