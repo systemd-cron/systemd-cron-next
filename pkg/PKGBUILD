@@ -13,19 +13,6 @@ replaces=('cron' 'anacron')
 source=('https://github.com/systemd-cron/systemd-crontab-generator/archive/master.zip')
 md5sums=('SKIP')
 
-prepare() {
-    RUSTVER=$(rustc --version | awk '{ print $2 }')
-    if [[ -n "$RUSTVER" && ("$RUSTVER" < "1.3.0") ]]; then
-        error "Rust nightly is required to build this package."
-        error "Possible ways to get Rust nightly:"
-        error " - AUR package 'rust-nightly-bin',"
-        error " - AUR package 'multirust', and then choose"
-        error "   nightly channel with 'multirust default nightly' command,"
-        error " - from official site: http://www.rust-lang.org/install.html."
-        return 1
-    fi
-}
-
 build() {
     cd "$srcdir/systemd-cron-next-master"
     ./configure --prefix="$pkgdir/usr"
