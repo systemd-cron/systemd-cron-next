@@ -1,4 +1,3 @@
-#![feature(duration)]
 #![feature(thread_sleep)]
 
 use std::fs::File;
