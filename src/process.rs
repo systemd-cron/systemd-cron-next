@@ -1,5 +1,5 @@
 use std::convert::AsRef;
-use std::fs::{walk_dir, PathExt};
+use std::fs::{read_dir, PathExt};
 use std::path::{Path, PathBuf};
 use std::collections::BTreeMap;
 
@@ -9,7 +9,7 @@ use cronparse::crontab::{EnvVarEntry, CrontabEntry, ToCrontabEntry};
 use generate::generate_systemd_units;
 
 pub fn process_crontab_dir<T: ToCrontabEntry, D: AsRef<Path>>(srcdir: &str, dstdir: D) {
-    let files = walk_dir(srcdir).and_then(|fs| fs.map(|r| r.map(|p| p.path()))
+    let files = read_dir(srcdir).and_then(|fs| fs.map(|r| r.map(|p| p.path()))
                                        .filter(|r| r.as_ref().map(|p| p.is_file()).unwrap_or(true))
                                        .collect::<Result<Vec<PathBuf>, _>>());
     match files {

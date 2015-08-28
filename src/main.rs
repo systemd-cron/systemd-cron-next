@@ -1,4 +1,3 @@
-#![feature(fs_walk)]
 #![feature(path_ext)]
 
 extern crate cronparse;
