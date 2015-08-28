@@ -103,10 +103,7 @@ execute commands from `package()` sub.
     $ ./configure
     $ make
 
-You will need [Rust nightly][rust-install] compiler and cargo tool to build the project.
-If you don't have Rust nightly installed, it will be downloaded to `rust` subdirectory
-in the project directory. You don't need Rust to use systemd-cron, it's a build only
-dependency.
+You will need [Rust stable][rust-install] compiler (tested with 1.2.0) and cargo tool to build the project.
 
 [rust-install]: http://www.rust-lang.org/install.html
 
