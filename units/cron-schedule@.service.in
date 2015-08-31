@@ -1,13 +1,13 @@
 [Unit]
 Description={{ package }} {{ schedule }} script service
 Documentation=man:systemd.cron(7)
-PartOf=cron-{{ schedule }}.target
+PartOf=cron-schedule@%i.target
 RefuseManualStart=yes
 RefuseManualStop=yes
-ConditionDirectoryNotEmpty={{ confdir }}/cron.{{ schedule }}
+ConditionDirectoryNotEmpty={{ confdir }}/cron.%i
 OnFailure=cron-failure@%i.service
 
 [Service]
 Type=oneshot
 IgnoreSIGPIPE=false
-ExecStart={{ runparts }} {{ confdir }}/cron.{{ schedule }}
+ExecStart={{ runparts }} {{ confdir }}/cron.%i

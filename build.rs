@@ -15,7 +15,7 @@ static MAN_DIR: &'static str = "man";
 
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
-    let output = Path::new(&*out_dir);
+    let output = Path::new(&out_dir);
 
     let data = build_render_data();
 
@@ -75,38 +75,8 @@ fn build_render_data() -> BTreeMap<String, Json> {
 
     ctx.insert("runparts".to_owned(), Json::String(env::var("RUN_PARTS").unwrap_or_else(|_| "/usr/bin/run-parts".to_owned())));
 
-    let mut schedules = Vec::new();
-    if env::var("CARGO_FEATURE_SCHED_BOOT").is_ok() {
-        schedules.push(Json::String("boot".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_HOURLY").is_ok() {
-        schedules.push(Json::String("hourly".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_DAILY").is_ok() {
-        schedules.push(Json::String("daily".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_WEEKLY").is_ok() {
-        schedules.push(Json::String("weekly".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_MONTHLY").is_ok() {
-        schedules.push(Json::String("monthly".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_YEARLY").is_ok() {
-        schedules.push(Json::String("yearly".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_MINUTELY").is_ok() {
-        schedules.push(Json::String("minutely".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_QUARTERLY").is_ok() {
-        schedules.push(Json::String("quarterly".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_SEMI_ANNUALLY").is_ok() {
-        schedules.push(Json::String("semi-annually".to_owned()));
-    }
-
-    ctx.insert("schedules".to_owned(), Json::Array(schedules));
-
     ctx.insert("persistent".to_owned(), Json::Boolean(env::var("CARGO_FEATURE_PERSISTENT").is_ok()));
 
     ctx
 }
+

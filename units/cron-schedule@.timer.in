@@ -1,5 +1,5 @@
 [Unit]
-Description={{ package }} {{ schedule }} timer
+Description={{ package }} %i timer
 Documentation=man:systemd.cron(7)
 PartOf=cron.target
 RefuseManualStart=yes
@@ -9,5 +9,5 @@ RefuseManualStop=yes
 {{#if persistent}}
 Persistent=true
 {{/if}}
-OnCalendar={{ schedule }}
-Unit=cron-{{ schedule }}.target
+OnCalendar=%i
+Unit=cron-schedule@%i.target
