@@ -3,7 +3,7 @@ name = "systemd-crontab-generator"
 version = "0.9.0"
 description = "Systemd generator for crontab files support"
 readme = "README.md"
-repository = "https://github.com/rust/systemd-crontab-generator"
+repository = "https://github.com/systemd-cron/systemd-cron-next"
 license = "MIT"
 authors = ["Konstantin Stepanov <me@kstep.me>"]
 build = "build.rs"
@@ -40,7 +40,4 @@ docopt = "*"
 rustc-serialize = "*"
 tempfile = "*"
 users = "*"
-
-[dependencies.kernlog]
-version = "*"
-#path = "/home/kstep/git/rust/kernlog"
+kernlog = "*"
