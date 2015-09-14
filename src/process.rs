@@ -16,7 +16,7 @@ pub fn process_crontab_dir<T: ToCrontabEntry, D: AsRef<Path>>(srcdir: &str, dstd
         Err(err) => error!("error processing directory {}: {}", srcdir, err),
         Ok(files) => for file in files {
             process_crontab_file::<T, _, _>(file, dstdir.as_ref());
-        }
+        },
     }
 }
 
@@ -38,4 +38,3 @@ pub fn process_crontab_file<T: ToCrontabEntry, P: AsRef<Path>, D: AsRef<Path>>(p
         error!("error parsing file {}: {}", path.as_ref().display(), err);
     });
 }
-

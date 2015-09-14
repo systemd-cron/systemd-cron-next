@@ -14,7 +14,7 @@ use libc::{uid_t, gid_t};
 use users::User;
 use std::env;
 use std::fs;
-use std::io::{stdin, stdout, stderr, Write, Read, self, copy};
+use std::io::{self, stdin, stdout, stderr, Write, Read, copy};
 use std::fs::File;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{PathBuf, Path};
@@ -28,10 +28,12 @@ extern "C" {
 }
 
 fn change_owner<P: AsRef<Path>>(path: P, owner: libc::uid_t, group: libc::gid_t) -> Result<(), io::Error> {
-    match unsafe { chown(CString::new(path.as_ref().to_str().unwrap().as_bytes()).unwrap().as_ptr(), owner, group) } {
+    match unsafe {
+        chown(CString::new(path.as_ref().to_str().unwrap().as_bytes()).unwrap().as_ptr(), owner, group)
+    } {
         0 => Ok(()),
         -1 => Err(io::Error::last_os_error()),
-        _ => unreachable!()
+        _ => unreachable!(),
     }
 }
 
@@ -78,7 +80,7 @@ struct Args {
     flag_remove: bool,
     flag_edit: bool,
     flag_show: bool,
-    flag_ask: bool
+    flag_ask: bool,
 }
 
 fn get_editor() -> Option<String> {
@@ -99,7 +101,9 @@ fn confirm(msg: &str) -> bool {
         match stdin.read(&mut buf) {
             Ok(n) if n > 0 && (buf[0] == 121 || buf[0] == 89) => return true,
             Ok(n) if n > 0 && (buf[0] == 110 || buf[0] == 78) => return false,
-            _ => { stdout.write_all("Please reply \"y\" or \"n\"\n".as_bytes()).unwrap(); },
+            _ => {
+                stdout.write_all("Please reply \"y\" or \"n\"\n".as_bytes()).unwrap();
+            }
         }
     }
 }
@@ -160,8 +164,8 @@ fn edit(cron_file: &Path, cron_user: &User, _args: &Args) -> i32 {
         None => {
             writeln!(stderr, "no editor found").unwrap();
             return 1;
-        },
-        Some(editor) => editor
+        }
+        Some(editor) => editor,
     };
 
     let mut tmpfile = NamedTempFile::new_in(USERS_CRONTAB_DIR).unwrap();
@@ -207,9 +211,13 @@ fn replace(cron_file: &Path, cron_user: &User, args: &Args) -> i32 {
     let mut tmpfile = NamedTempFile::new_in(USERS_CRONTAB_DIR).unwrap();
 
     match args.arg_file {
-        Some(ref name) if &**name == "-" => { let _ = copy(&mut stdin(), &mut tmpfile); },
-        Some(ref name) => { let _ = copy(&mut File::open(&**name).unwrap(), &mut tmpfile); },
-        None => unreachable!()
+        Some(ref name) if &**name == "-" => {
+            let _ = copy(&mut stdin(), &mut tmpfile);
+        }
+        Some(ref name) => {
+            let _ = copy(&mut File::open(&**name).unwrap(), &mut tmpfile);
+        }
+        None => unreachable!(),
     }
 
     tmpfile.flush().unwrap();
@@ -239,7 +247,7 @@ fn main() {
         Some(_) if users::get_current_uid() != 0 => {
             writeln!(stderr, "must be privileged to use -u").unwrap();
             exit(1);
-        },
+        }
         Some(ref user) => match users::get_user_by_name(&**user) {
             Some(user) => user,
             None => {
@@ -254,29 +262,29 @@ fn main() {
         Ok(ref meta) if !meta.is_dir() => {
             writeln!(stderr, "{} is not a directory!", USERS_CRONTAB_DIR).unwrap();
             exit(1);
-        },
+        }
         Err(_) => if let Err(_) = fs::create_dir_all(USERS_CRONTAB_DIR) {
             writeln!(stderr, "{} doesn't exist!", USERS_CRONTAB_DIR).unwrap();
             exit(1);
         },
-        _ => ()
+        _ => (),
     }
 
     let cron_file = PathBuf::from(USERS_CRONTAB_DIR).join(cron_user.name.clone());
 
     exit(match args {
-        Args { flag_show: true, .. } => show(&*cron_file, &cron_user, &args),
-        Args { flag_list: true, .. } => list(&*cron_file, &cron_user, &args),
-        Args { flag_edit: true, arg_file: None, .. } => edit(&*cron_file, &cron_user, &args),
-        Args { flag_edit: true, .. } => replace(&*cron_file, &cron_user, &args),
-        Args { flag_remove: true, .. } => remove(&*cron_file, &cron_user, &args),
-        _ => unreachable!()
-    })
+            Args { flag_show: true, .. } => show(&*cron_file, &cron_user, &args),
+            Args { flag_list: true, .. } => list(&*cron_file, &cron_user, &args),
+            Args { flag_edit: true, arg_file: None, .. } => edit(&*cron_file, &cron_user, &args),
+            Args { flag_edit: true, .. } => replace(&*cron_file, &cron_user, &args),
+            Args { flag_remove: true, .. } => remove(&*cron_file, &cron_user, &args),
+            _ => unreachable!(),
+        })
 }
 
 fn check_crontab_syntax<P: AsRef<Path>>(path: P) -> Result<(), CrontabFileError> {
     match try!(CrontabFile::<UserCrontabEntry>::new(path)).find(Result::is_err) {
         Some(Err(err)) => Err(err),
-        _ => Ok(())
+        _ => Ok(()),
     }
 }

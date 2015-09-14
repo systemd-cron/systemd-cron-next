@@ -15,7 +15,7 @@ static KNOWN_STAMPS: [&'static str; 6] = [
     "/var/lib/systemd/timers/stamp-cron-monthly.timer",
     "/var/lib/systemd/timers/stamp-cron-quarterly.timer",
     "/var/lib/systemd/timers/stamp-cron-semi-annually.timer",
-    "/var/lib/systemd/timers/stamp-cron-yearly.timer"
+    "/var/lib/systemd/timers/stamp-cron-yearly.timer",
 ];
 
 static ACTUAL_STAMPS_GLOB: &'static str = "/var/lib/systemd/timers/stamp-cron-*.timer";

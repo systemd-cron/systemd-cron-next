@@ -35,36 +35,37 @@ macro_rules! try_ {
 }
 
 fn main() {
-    log::set_logger(|filter| kernlog::KernelLog::init_level(log::LogLevelFilter::Error, filter)).unwrap();
+    log::set_logger(|filter|
+                    kernlog::KernelLog::init_level(log::LogLevelFilter::Error, filter)).unwrap();
 
     let dest_dir = match env::args().nth(1) {
         None => {
             println!("Usage: systemd-crontab-generator <destination-directory>");
             return;
-        },
-        Some(path) => path
+        }
+        Some(path) => path,
     };
 
     let s = dest_dir.clone();
     let user_thread = spawn(move || {
-        if !metadata(USERS_CRONTAB_DIR).map(|m| m.is_dir()).unwrap_or(false) {
-            return generate_after_var_unit(&*s);
-        }
+                                     if !metadata(USERS_CRONTAB_DIR).map(|m| m.is_dir()).unwrap_or(false) {
+                                         return generate_after_var_unit(&*s);
+                                     }
 
-        process::process_crontab_dir::<UserCrontabEntry, _>(USERS_CRONTAB_DIR, s);
-        create_reboot_lock_file();
-    });
+                                     process::process_crontab_dir::<UserCrontabEntry, _>(USERS_CRONTAB_DIR, s);
+                                     create_reboot_lock_file();
+                                 });
 
     let s = dest_dir.clone();
     let system_thread = spawn(move || {
-        process::process_crontab_file::<SystemCrontabEntry, _, _>(SYSTEM_CRONTAB_FILE, &s);
-        process::process_crontab_dir::<SystemCrontabEntry, _>(SYSTEM_CRONTAB_DIR, &s);
-    });
+                                       process::process_crontab_file::<SystemCrontabEntry, _, _>(SYSTEM_CRONTAB_FILE, &s);
+                                       process::process_crontab_dir::<SystemCrontabEntry, _>(SYSTEM_CRONTAB_DIR, &s);
+                                   });
 
     let s = dest_dir.clone();
     let anacron_thread = spawn(move || {
-        process::process_crontab_file::<AnacrontabEntry, _, _>(ANACRONTAB_FILE, &s);
-    });
+                                        process::process_crontab_file::<AnacrontabEntry, _, _>(ANACRONTAB_FILE, &s);
+                                    });
 
     let _ = user_thread.join();
     let _ = system_thread.join();

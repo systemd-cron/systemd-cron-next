@@ -303,7 +303,7 @@ fn tohex(input: &[u8]) -> String {
         match d {
             0...9 => (d + 0x30) as char,
             10...15 => (d + 0x57) as char,
-            _ => unreachable!("unexpected value: {}", d)
+            _ => unreachable!("unexpected value: {}", d),
         }
     }
 
@@ -314,4 +314,3 @@ fn tohex(input: &[u8]) -> String {
     }
     buf
 }
-
