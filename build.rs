@@ -57,7 +57,7 @@ fn compile_templates<P: AsRef<Path>>(source_dir: &str, output_dir: P, data: &Jso
     for entry in fs::read_dir(source_dir).unwrap() {
         let entry = entry.unwrap();
         let name = entry.file_name().into_string().unwrap();
-        if name.ends_with(".in") {
+        if name.ends_with(".in") && !name.starts_with("cron-schedule.") {
             let target = output_dir.as_ref().join(&name[..name.len()-3]);
             compile_template(entry.path(), target, data);
         }
