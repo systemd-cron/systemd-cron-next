@@ -1,5 +1,5 @@
 use std::convert::AsRef;
-use std::fs::{read_dir, PathExt, metadata};
+use std::fs::{read_dir, metadata};
 use std::path::{Path, PathBuf};
 use std::collections::BTreeMap;
 
