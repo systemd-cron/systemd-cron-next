@@ -25,26 +25,41 @@ fn main() {
     writeln!(config, "pub static BIN_DIR: &'static str = {:?};", data["bindir"].as_string().unwrap()).unwrap();
     writeln!(config, "pub static LIB_DIR: &'static str = {:?};", data["libdir"].as_string().unwrap()).unwrap();
 
-    let data = Json::Object(data);
+    let mut data = Json::Object(data);
+
+    for schedule in get_required_schedules() {
+        data.as_object_mut().unwrap().insert("schedule".to_owned(), Json::String(schedule.clone()));
+        for schedule_unit in [ "target", "timer", "service" ].iter() {
+            compile_template(
+                format!("{}/cron-schedule.{}.in", UNITS_DIR, schedule_unit),
+                output.join(format!("cron-{}.{}", schedule, schedule_unit)),
+                &data);
+        }
+    }
 
     compile_templates(UNITS_DIR, output, &data);
     compile_templates(MAN_DIR, output, &data);
 }
 
-fn compile_templates<P: AsRef<Path>>(source_dir: &str, output_dir: P, data: &Json) {
+fn compile_template<S: AsRef<Path>, T: AsRef<Path>>(source_file: S, target_file: T, data: &Json) {
+    println!("compiling from template: {:?} -> {:?}...", source_file.as_ref(), target_file.as_ref());
+
     let ctx = EvalContext::new();
+    let tmpl = File::open(source_file).and_then(|mut file| {
+        let mut buf = String::new();
+        file.read_to_string(&mut buf).map(|_| Template::new(&*buf).unwrap())
+    }).unwrap();
+
+    tmpl.eval(data, &mut File::create(target_file).unwrap(), &ctx).unwrap();
+}
+
+fn compile_templates<P: AsRef<Path>>(source_dir: &str, output_dir: P, data: &Json) {
     for entry in fs::read_dir(source_dir).unwrap() {
         let entry = entry.unwrap();
         let name = entry.file_name().into_string().unwrap();
         if name.ends_with(".in") {
             let target = output_dir.as_ref().join(&name[..name.len()-3]);
-            let tmpl = File::open(entry.path()).and_then(|mut file| {
-                let mut buf = String::new();
-                file.read_to_string(&mut buf).map(|_| Template::new(&*buf).unwrap())
-            }).unwrap();
-
-            println!("compiling from template: {:?} -> {:?}...", entry.path(), target);
-            tmpl.eval(data, &mut File::create(target).unwrap(), &ctx).unwrap();
+            compile_template(entry.path(), target, data);
         }
     }
 }
@@ -75,38 +90,39 @@ fn build_render_data() -> BTreeMap<String, Json> {
 
     ctx.insert("runparts".to_owned(), Json::String(env::var("RUN_PARTS").unwrap_or_else(|_| "/usr/bin/run-parts".to_owned())));
 
-    let mut schedules = Vec::new();
-    if env::var("CARGO_FEATURE_SCHED_BOOT").is_ok() {
-        schedules.push(Json::String("boot".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_HOURLY").is_ok() {
-        schedules.push(Json::String("hourly".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_DAILY").is_ok() {
-        schedules.push(Json::String("daily".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_WEEKLY").is_ok() {
-        schedules.push(Json::String("weekly".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_MONTHLY").is_ok() {
-        schedules.push(Json::String("monthly".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_YEARLY").is_ok() {
-        schedules.push(Json::String("yearly".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_MINUTELY").is_ok() {
-        schedules.push(Json::String("minutely".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_QUARTERLY").is_ok() {
-        schedules.push(Json::String("quarterly".to_owned()));
-    }
-    if env::var("CARGO_FEATURE_SCHED_SEMI_ANNUALLY").is_ok() {
-        schedules.push(Json::String("semi-annually".to_owned()));
-    }
-
-    ctx.insert("schedules".to_owned(), Json::Array(schedules));
-
     ctx.insert("persistent".to_owned(), Json::Boolean(env::var("CARGO_FEATURE_PERSISTENT").is_ok()));
 
     ctx
+}
+
+fn get_required_schedules() -> Vec<String> {
+    let mut schedules = Vec::new();
+    if env::var("CARGO_FEATURE_SCHED_BOOT").is_ok() {
+        schedules.push("boot".to_owned());
+    }
+    if env::var("CARGO_FEATURE_SCHED_HOURLY").is_ok() {
+        schedules.push("hourly".to_owned());
+    }
+    if env::var("CARGO_FEATURE_SCHED_DAILY").is_ok() {
+        schedules.push("daily".to_owned());
+    }
+    if env::var("CARGO_FEATURE_SCHED_WEEKLY").is_ok() {
+        schedules.push("weekly".to_owned());
+    }
+    if env::var("CARGO_FEATURE_SCHED_MONTHLY").is_ok() {
+        schedules.push("monthly".to_owned());
+    }
+    if env::var("CARGO_FEATURE_SCHED_YEARLY").is_ok() {
+        schedules.push("yearly".to_owned());
+    }
+    if env::var("CARGO_FEATURE_SCHED_MINUTELY").is_ok() {
+        schedules.push("minutely".to_owned());
+    }
+    if env::var("CARGO_FEATURE_SCHED_QUARTERLY").is_ok() {
+        schedules.push("quarterly".to_owned());
+    }
+    if env::var("CARGO_FEATURE_SCHED_SEMI_ANNUALLY").is_ok() {
+        schedules.push("semi-annually".to_owned());
+    }
+    schedules
 }
