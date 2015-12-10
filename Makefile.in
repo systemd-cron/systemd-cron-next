@@ -29,7 +29,7 @@ out_targets		:= $(foreach schedule,$(schedules),$(builddir)/units/cron-$(schedul
 out_units		:= $(out_services) $(out_timers) $(out_targets) $(builddir)/units/cron.target \
                            $(builddir)/units/cron-update.path $(builddir)/units/cron-update.service \
                            $(builddir)/units/cron-failure@.service
-out_manuals		:= $(patsubst $(srcdir)/man/%.in,$(builddir)/man/%,$(wildcard $(srcdir)/man/*))
+out_manuals		:= $(patsubst $(CURDIR)/man/%.in,$(builddir)/man/%,$(wildcard $(CURDIR)/man/*))
 out_programs		:= $(patsubst $(srcdir)/bin/%.rs,$(builddir)/bin/%,$(wildcard $(srcdir)/bin/*.rs))
 outputs			:= $(out_units) $(out_manuals) $(out_programs)
 
@@ -39,21 +39,15 @@ define \n
 endef
 
 null :=
-requires = $(subst ${null} ${null},\n,$(foreach schedule,$(schedules),Requires=cron-$(schedule).timer))
-persistent = $(if $(filter $(enable_persistent),yes),True,False)
+persistent = $(if $(filter $(enable_persistent),yes),persistent,)
 
 all: $(builddir) $(outputs)
 
 clean:
-	rm -rf $(outdir) $(builddir)
+	rm -rf $(outdir)
 
 distprep: $(distdir)
-	cp -a configure		$(distdir)
-	cp -a Makefile.in	$(distdir)
-	cp -a LICENSE		$(distdir)
-	cp -a README.md		$(distdir)
-	cp -a VERSION		$(distdir)
-	cp -a src		$(distdir)
+	cp -a configure Makefile.in LICENSE README.md VERSION src man units	$(distdir)
 
 dist: $(tarball)
 
@@ -63,7 +57,7 @@ test: all
 	cargo test
 
 build: all
-	cargo install --path . --root $(builddir)
+	cargo install --path $(CURDIR) --root $(builddir) --features "$(schedules) $(persistent)"
 
 install: build
 	install -m2755 -g `getent group cron || echo root` -s -D $(builddir)/bin/crontab $(DESTDIR)$(bindir)/crontab
