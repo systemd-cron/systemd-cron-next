@@ -45,7 +45,7 @@ persistent = $(if $(filter $(enable_persistent),yes),True,False)
 all: $(builddir) $(outputs)
 
 clean:
-	rm -rf $(outdir)
+	rm -rf $(outdir) $(builddir)
 
 distprep: $(distdir)
 	cp -a configure		$(distdir)
@@ -53,7 +53,7 @@ distprep: $(distdir)
 	cp -a LICENSE		$(distdir)
 	cp -a README.md		$(distdir)
 	cp -a VERSION		$(distdir)
-	cp -a src			$(distdir)
+	cp -a src		$(distdir)
 
 dist: $(tarball)
 
@@ -63,20 +63,7 @@ test: all
 	cargo test
 
 build: all
-	cargo build --release
-	cp -a target/release/systemd-crontab-generator \
-		target/release/crontab \
-		target/release/remove-stale-stamps \
-		target/release/mail-on-failure \
-		target/release/boot-delay \
-		$(builddir)/bin/
-	cp -a target/release/build/systemd-crontab-generator-*/out/*.target \
-		target/release/build/systemd-crontab-generator-*/out/*.service \
-		target/release/build/systemd-crontab-generator-*/out/*.timer \
-		target/release/build/systemd-crontab-generator-*/out/*.path \
-		$(builddir)/units/
-	cp -a target/release/build/systemd-crontab-generator-*/out/*.[1578] \
-		$(builddir)/man/
+	cargo install --path . --root $(builddir)
 
 install: build
 	install -m2755 -g `getent group cron || echo root` -s -D $(builddir)/bin/crontab $(DESTDIR)$(bindir)/crontab

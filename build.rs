@@ -3,7 +3,7 @@ extern crate rustc_serialize;
 
 use std::env;
 use std::path::Path;
-use std::fs::{self, File};
+use std::fs::{self, File, create_dir_all};
 use std::io::{Read, Write};
 use std::collections::BTreeMap;
 
@@ -15,7 +15,11 @@ static MAN_DIR: &'static str = "man";
 
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
-    let output = Path::new(&*out_dir);
+    let units_out_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
+    let output = Path::new(&*units_out_dir).join("out").join("build");
+
+    create_dir_all(output.join("units")).unwrap();
+    create_dir_all(output.join("man")).unwrap();
 
     let data = build_render_data();
 
@@ -33,15 +37,15 @@ fn main() {
         for schedule_unit in [ "target", "timer", "service" ].iter() {
             compile_template(
                 format!("{}/cron-schedule.{}.in", UNITS_DIR, schedule_unit),
-                output.join(format!("cron-{}.{}", schedule, schedule_unit)),
+                output.join("units").join(format!("cron-{}.{}", schedule, schedule_unit)),
                 &data);
         }
     }
 
     data.as_object_mut().unwrap().insert("schedules".to_owned(), schedules.to_json());
 
-    compile_templates(UNITS_DIR, output, &data);
-    compile_templates(MAN_DIR, output, &data);
+    compile_templates(UNITS_DIR, output.join("units"), &data);
+    compile_templates(MAN_DIR, output.join("man"), &data);
 }
 
 fn compile_template<S: AsRef<Path>, T: AsRef<Path>>(source_file: S, target_file: T, data: &Json) {
