@@ -105,7 +105,7 @@ execute commands from `package()` sub.
     $ ./configure
     $ make
 
-You will need [Rust stable][rust-install] compiler (tested with 1.2.0) and cargo tool to build the project.
+You will need [Rust stable][rust-install] compiler (tested with 1.5.0) and cargo tool to build the project.
 
 [rust-install]: http://www.rust-lang.org/install.html
 
