@@ -61,7 +61,10 @@ test: all
 
 build: all
 	test -f $(builddir)/bin/systemd-crontab-generator || \
-	    RUN_PARTS="$(runparts)" STATE_DIR="$(statedir)" cargo install --path $(CURDIR) --root $(builddir) \
+	    PREFIX="$(prefix)" RUN_PARTS="$(runparts)" STATE_DIR="$(statedir)" \
+	    BIN_DIR="$(bindir)" CONF_DIR="$(confdir)" MAN_DIR="$(mandir)" DOC_DIR="$(docdir)" \
+	    DATA_DIR="$(datadir)" LIB_DIR="$(libdir)" UNIT_DIR="$(unitdir)" \
+	    cargo install --path $(CURDIR) --root $(builddir) \
 	    --features "$(foreach schedule,$(schedules),sched-$(schedule)) $(persistent)"
 
 install: build
