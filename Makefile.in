@@ -46,8 +46,11 @@ all: $(builddir) $(outputs)
 clean:
 	rm -rf $(outdir)
 
-distprep: $(distdir)
+distprep: $(distdir) VERSION
 	cp -a Cargo.toml Cargo.lock configure Makefile.in LICENSE README.md VERSION src man units	$(distdir)
+
+VERSION: Cargo.toml
+	grep "^version =" Cargo.toml | sed -e 's/^version = "//' -e 's/"$$//' > VERSION
 
 dist: $(tarball)
 
