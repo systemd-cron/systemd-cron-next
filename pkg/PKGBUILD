@@ -19,11 +19,11 @@ build() {
     if which multirust; then
         multirust override stable
     fi
-    ./configure --prefix="$pkgdir/usr"
-    make build
+    ./configure --prefix="/usr"
+    DESTDIR="${pkgdir}" make build
 }
 
 package() {
     cd "${srcdir}/${pkgname}-${_gitver}"
-    make install
+    DESTDIR="${pkgdir}" make install
 }
