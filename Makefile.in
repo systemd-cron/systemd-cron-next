@@ -60,8 +60,9 @@ test: all
 	cargo test
 
 build: all
-	RUN_PARTS="$(runparts)" STATE_DIR="$(statedir)" cargo install --path $(CURDIR) --root $(builddir) \
-		  --features "$(schedules) $(persistent)"
+	test -f $(builddir)/bin/systemd-crontab-generator || \
+	    RUN_PARTS="$(runparts)" STATE_DIR="$(statedir)" cargo install --path $(CURDIR) --root $(builddir) \
+	    --features "$(foreach schedule,$(schedules),sched-$(schedule)) $(persistent)"
 
 install: build
 	install -m2755 -g `getent group cron || echo root` -s -D $(builddir)/bin/crontab $(DESTDIR)$(bindir)/crontab
