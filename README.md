@@ -2,6 +2,8 @@ systemd-cron-next
 =================
 
 [![Travis](https://img.shields.io/travis/systemd-cron/systemd-cron-next.svg)](https://travis-ci.org/systemd-cron/systemd-cron-next)
+[![Crate](https://img.shields.io/crates/v/systemd-crontab-generator.svg)](https://crates.io/crates/systemd-crontab-generator)
+[![Crate](https://img.shields.io/crates/l/systemd-crontab-generator.svg)](https://crates.io/crates/systemd-crontab-generator)
 
 ## What's it?
 
