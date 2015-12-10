@@ -106,33 +106,20 @@ fn build_render_data() -> BTreeMap<String, Json> {
 }
 
 fn get_required_schedules() -> Vec<String> {
-    let mut schedules = Vec::new();
-    if env::var("CARGO_FEATURE_SCHED_BOOT").is_ok() {
-        schedules.push("boot".to_owned());
-    }
-    if env::var("CARGO_FEATURE_SCHED_HOURLY").is_ok() {
-        schedules.push("hourly".to_owned());
-    }
-    if env::var("CARGO_FEATURE_SCHED_DAILY").is_ok() {
-        schedules.push("daily".to_owned());
-    }
-    if env::var("CARGO_FEATURE_SCHED_WEEKLY").is_ok() {
-        schedules.push("weekly".to_owned());
-    }
-    if env::var("CARGO_FEATURE_SCHED_MONTHLY").is_ok() {
-        schedules.push("monthly".to_owned());
-    }
-    if env::var("CARGO_FEATURE_SCHED_YEARLY").is_ok() {
-        schedules.push("yearly".to_owned());
-    }
-    if env::var("CARGO_FEATURE_SCHED_MINUTELY").is_ok() {
-        schedules.push("minutely".to_owned());
-    }
-    if env::var("CARGO_FEATURE_SCHED_QUARTERLY").is_ok() {
-        schedules.push("quarterly".to_owned());
-    }
-    if env::var("CARGO_FEATURE_SCHED_SEMI_ANNUALLY").is_ok() {
-        schedules.push("semi-annually".to_owned());
-    }
-    schedules
+    let features = [
+        ("CARGO_FEATURE_SCHED_BOOT", "boot"),
+        ("CARGO_FEATURE_SCHED_HOURLY", "hourly"),
+        ("CARGO_FEATURE_SCHED_DAILY", "daily"),
+        ("CARGO_FEATURE_SCHED_WEEKLY", "weekly"),
+        ("CARGO_FEATURE_SCHED_MONTHLY", "monthly"),
+        ("CARGO_FEATURE_SCHED_YEARLY", "yearly"),
+        ("CARGO_FEATURE_SCHED_MINUTELY", "minutely"),
+        ("CARGO_FEATURE_SCHED_QUARTERLY", "quarterly"),
+        ("CARGO_FEATURE_SCHED_SEMI_ANNUALLY", "semi-annually"),
+    ];
+
+    features.iter()
+        .filter(|&&(e, _)| env::var(e).is_ok())
+        .map(|&(_, f)| f.to_owned())
+        .collect::<Vec<_>>()
 }
