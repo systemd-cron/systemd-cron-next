@@ -25,10 +25,7 @@ persistent = []
 
 [build-dependencies]
 rustc-serialize = "*"
-
-[build-dependencies.rumblebars]
-version = "*"
-git = "https://github.com/nicolas-cherel/rumblebars.git"
+handlebars = "*"
 
 [dependencies]
 libc = "*"

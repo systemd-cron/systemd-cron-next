@@ -1,4 +1,4 @@
-extern crate rumblebars;
+extern crate handlebars;
 extern crate rustc_serialize;
 
 use std::env;
@@ -7,8 +7,8 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::collections::BTreeMap;
 
-use rumblebars::{Template, EvalContext};
-use rustc_serialize::json::Json;
+use handlebars::{Handlebars, Context, Template};
+use rustc_serialize::json::{Json, ToJson};
 
 static UNITS_DIR: &'static str = "units";
 static MAN_DIR: &'static str = "man";
@@ -26,8 +26,9 @@ fn main() {
     writeln!(config, "pub static LIB_DIR: &'static str = {:?};", data["libdir"].as_string().unwrap()).unwrap();
 
     let mut data = Json::Object(data);
+    let schedules = get_required_schedules();
 
-    for schedule in get_required_schedules() {
+    for schedule in schedules.iter() {
         data.as_object_mut().unwrap().insert("schedule".to_owned(), Json::String(schedule.clone()));
         for schedule_unit in [ "target", "timer", "service" ].iter() {
             compile_template(
@@ -37,6 +38,8 @@ fn main() {
         }
     }
 
+    data.as_object_mut().unwrap().insert("schedules".to_owned(), schedules.to_json());
+
     compile_templates(UNITS_DIR, output, &data);
     compile_templates(MAN_DIR, output, &data);
 }
@@ -44,13 +47,16 @@ fn main() {
 fn compile_template<S: AsRef<Path>, T: AsRef<Path>>(source_file: S, target_file: T, data: &Json) {
     println!("compiling from template: {:?} -> {:?}...", source_file.as_ref(), target_file.as_ref());
 
-    let ctx = EvalContext::new();
     let tmpl = File::open(source_file).and_then(|mut file| {
         let mut buf = String::new();
-        file.read_to_string(&mut buf).map(|_| Template::new(&*buf).unwrap())
+        file.read_to_string(&mut buf).map(|_| Template::compile(&*buf).unwrap())
     }).unwrap();
 
-    tmpl.eval(data, &mut File::create(target_file).unwrap(), &ctx).unwrap();
+    let mut handle = Handlebars::new();
+    handle.register_template("default", tmpl);
+
+    let ctx = Context::wraps(data);
+    handle.renderw("default", &ctx, &mut File::create(target_file).unwrap()).unwrap();
 }
 
 fn compile_templates<P: AsRef<Path>>(source_dir: &str, output_dir: P, data: &Json) {
