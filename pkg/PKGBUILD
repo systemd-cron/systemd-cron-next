@@ -1,6 +1,6 @@
 # Maintainer: Konstantin Stepanov <me@kstep.me>
 pkgname=systemd-cron
-pkgver=0.9.0
+pkgver=1.0.0.rc1
 pkgrel=1
 pkgdesc="systemd generator to generate timers/services from crontab and anacrontab files"
 url="https://github.com/systemd-cron/systemd-cron-next"
