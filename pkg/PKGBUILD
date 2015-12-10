@@ -1,5 +1,5 @@
 # Maintainer: Konstantin Stepanov <me@kstep.me>
-pkgname=systemd-cron
+pkgname=systemd-cron-next
 pkgver=1.0.0.rc3
 _gitver=1.0.0-rc3
 pkgrel=1
