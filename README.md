@@ -98,7 +98,7 @@ If you are on [Archlinux][arch], install from [AUR][aur], otherwise see `PKGBUIL
 execute commands from `package()` sub.
 
 [arch]: https://www.archlinux.org/
-[aur]: https://aur.archlinux.org/packages/systemd-crontab-generator/
+[aur]: https://aur.archlinux.org/packages/systemd-cron-next/
 
 ## Packaging
 
@@ -197,9 +197,9 @@ Crontab man page is derived from [Vixie Cron][vixie] and licensed under *Paul-Vi
 You are most welcome to post [bugs][issues] and [PRs][pulls]!
 Also check out [comments][] in AUR for current news about Arch package status.
 
-[issues]: https://github.com/kstep/systemd-crontab-generator/issues
-[pulls]: https://github.com/kstep/systemd-crontab-generator/pulls
-[comments]: https://aur.archlinux.org/packages/systemd-crontab-generator/?comments=all
+[issues]: https://github.com/systemd-cron/systemd-cron-next/issues
+[pulls]: https://github.com/systemd-cron/systemd-cron-next/pulls
+[comments]: https://aur.archlinux.org/packages/systemd-cron-next/?comments=all
 
 ## Copyright
 
