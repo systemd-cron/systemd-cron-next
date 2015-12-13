@@ -13,7 +13,7 @@ pub fn process_crontab_dir<T: ToCrontabEntry, D: AsRef<Path>>(srcdir: &str, dstd
                                        .filter(|r| r.as_ref().map(|p| metadata(p).map(|m| m.is_file()).unwrap_or(true)).unwrap_or(true))
                                        .collect::<Result<Vec<PathBuf>, _>>());
     match files {
-        Err(err) => error!("error processing directory {}: {}", srcdir, err),
+        Err(err) => warn!("error processing directory {}: {}", srcdir, err),
         Ok(files) => for file in files {
             process_crontab_file::<T, _, _>(file, dstdir.as_ref());
         }
@@ -28,14 +28,14 @@ pub fn process_crontab_file<T: ToCrontabEntry, P: AsRef<Path>, D: AsRef<Path>>(p
                 Ok(CrontabEntry::EnvVar(EnvVarEntry(name, value))) => { env.insert(name, value); },
                 Ok(data) => match generate_systemd_units(data, &env, path.as_ref(), dstdir.as_ref()) {
                     Ok(_) => (),
-                    Err(err) => error!("error generating unit from {}: {}", path.as_ref().display(), err)
+                    Err(err) => warn!("error generating unit from {}: {}", path.as_ref().display(), err)
                 },
                 Err(err @ CrontabFileError { kind: CrontabFileErrorKind::Io(_), .. }) => warn!("error accessing file {}: {}", path.as_ref().display(), err),
                 Err(err @ CrontabFileError { kind: CrontabFileErrorKind::Parse(_), .. }) => warn!("skipping file {} due to parsing error: {}", path.as_ref().display(), err),
             }
         }
     }).unwrap_or_else(|err| {
-        error!("error parsing file {}: {}", path.as_ref().display(), err);
+        warn!("error parsing file {}: {}", path.as_ref().display(), err);
     });
 }
 
