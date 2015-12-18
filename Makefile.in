@@ -42,7 +42,7 @@ endef
 null :=
 persistent = $(if $(filter $(enable_persistent),yes),persistent,)
 
-all: $(builddir) $(outputs)
+all: build
 
 clean:
 	rm -rf $(outdir)
