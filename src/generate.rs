@@ -238,7 +238,7 @@ ExecStart={command}"###,
             if !env.is_empty() {
                 try!(write!(service_unit_file, "Environment="));
                 for (name, value) in env.iter() {
-                    try!(write!(service_unit_file, r#""{}={}""#, name, value));
+                    try!(write!(service_unit_file, r#""{}={}" "#, name, value));
                 }
                 try!(write!(service_unit_file, "\n"));
             }
