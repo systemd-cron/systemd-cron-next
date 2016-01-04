@@ -1,5 +1,4 @@
 use std::io::{self, Write};
-use std::fmt::Display;
 use std::fs::{File, create_dir_all, set_permissions, metadata};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{symlink, MetadataExt, PermissionsExt};
@@ -128,11 +127,11 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
         } = *cal;
 
         Some(format!("{} *-{}-{} {}:{}:00",
-                     linearize(&**dows, ""),
-                     linearize(&**mons, "*"),
-                     linearize(&**days, "*"),
-                     linearize(&**hrs, "*"),
-                     linearize(&**mins, "*")))
+                     linearize(&**dows, "", ToString::to_string),
+                     linearize(&**mons, "*", |&mon| (mon as u8).to_string()),
+                     linearize(&**days, "*", ToString::to_string),
+                     linearize(&**hrs, "*", ToString::to_string),
+                     linearize(&**mins, "*", ToString::to_string)))
     }));
 
     if daemon_reload && schedule.is_none() {
@@ -281,13 +280,13 @@ Unit={service_unit_name}"###,
     Ok(())
 }
 
-fn linearize<T: Limited + Display>(input: &[Interval<T>], star: &str) -> String {
+fn linearize<T, C>(input: &[Interval<T>], star: &str, conv: C) -> String where T: Limited, C: Fn(&T) -> String {
     if input.len() == 1 && input[0] == Interval::Full(1) {
         star.to_owned()
     } else {
         let mut output = String::new();
         for part in input.iter().flat_map(|v| v.iter()).collect::<BTreeSet<_>>().iter() {
-            output.push_str(&*part.to_string());
+            output.push_str(&*conv(&part));
             output.push(',');
         }
         output.pop();
