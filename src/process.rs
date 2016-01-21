@@ -2,13 +2,14 @@ use std::convert::AsRef;
 use std::fs::{read_dir, metadata};
 use std::path::{Path, PathBuf};
 use std::collections::BTreeMap;
+use std::str::FromStr;
 
 use cronparse::{CrontabFile, CrontabFileError, CrontabFileErrorKind};
-use cronparse::crontab::{EnvVarEntry, CrontabEntry, ToCrontabEntry};
+use cronparse::crontab::{EnvVarEntry, CrontabEntry};
 
 use generate::generate_systemd_units;
 
-pub fn process_crontab_dir<T: ToCrontabEntry, D: AsRef<Path>>(srcdir: &str, dstdir: D) {
+pub fn process_crontab_dir<T: FromStr, D: AsRef<Path>>(srcdir: &str, dstdir: D) where CrontabEntry: From<T>, CrontabFileError: From<<T as FromStr>::Err> {
     let files = read_dir(srcdir).and_then(|fs| fs.map(|r| r.map(|p| p.path()))
                                        .filter(|r| r.as_ref().map(|p| metadata(p).map(|m| m.is_file()).unwrap_or(true)).unwrap_or(true))
                                        .collect::<Result<Vec<PathBuf>, _>>());
@@ -20,7 +21,7 @@ pub fn process_crontab_dir<T: ToCrontabEntry, D: AsRef<Path>>(srcdir: &str, dstd
     }
 }
 
-pub fn process_crontab_file<T: ToCrontabEntry, P: AsRef<Path>, D: AsRef<Path>>(path: P, dstdir: D) {
+pub fn process_crontab_file<T: FromStr, P: AsRef<Path>, D: AsRef<Path>>(path: P, dstdir: D) where CrontabEntry: From<T>, CrontabFileError: From<<T as FromStr>::Err> {
     CrontabFile::<T>::new(path.as_ref()).map(|crontab| {
         let mut env = BTreeMap::new();
         for entry in crontab {

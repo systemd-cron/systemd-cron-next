@@ -29,7 +29,7 @@ handlebars = "0.12.0"
 
 [dependencies]
 rustc-serialize = "0.3.16"
-cronparse = "0.4.0"
+cronparse = "0.5.0"
 docopt = "0.6.78"
 glob = "0.2.10"
 kernlog = "0.2.1"
