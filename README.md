@@ -12,7 +12,7 @@ crontab and anacrontab files from usual places like `/etc/crontab` and `/var/spo
 and generating systemd timers and services. You can use `cron.target` as a single control
 point for the generated units.
 
-It's intented to be drop-in replacement for all cron implementations.
+It's intended to be drop-in replacement for all cron implementations.
 
 ## Rationale
 
