@@ -164,7 +164,13 @@ fn edit(cron_file: &Path, cron_user: &User, _args: &Args) -> i32 {
         Some(editor) => editor
     };
 
-    let mut tmpfile = NamedTempFile::new_in(USERS_CRONTAB_DIR).unwrap();
+    let mut tmpfile = match NamedTempFile::new_in(USERS_CRONTAB_DIR) {
+        Ok(tmpfile) => tmpfile,
+        Err(err) => {
+            writeln!(stderr, "unable to create a temporary file in {}: {}", USERS_CRONTAB_DIR, err).unwrap();
+            return 1;
+        },
+    };
 
     if let Err(e) = File::open(cron_file).map(|mut file| copy(&mut file, &mut tmpfile)) {
         match e.kind() {
@@ -204,7 +210,13 @@ fn edit(cron_file: &Path, cron_user: &User, _args: &Args) -> i32 {
 
 fn replace(cron_file: &Path, cron_user: &User, args: &Args) -> i32 {
     let mut stderr = stderr();
-    let mut tmpfile = NamedTempFile::new_in(USERS_CRONTAB_DIR).unwrap();
+    let mut tmpfile = match NamedTempFile::new_in(USERS_CRONTAB_DIR) {
+        Ok(tmpfile) => tmpfile,
+        Err(err) => {
+            writeln!(stderr, "unable to create a temporary file in {}: {}", USERS_CRONTAB_DIR, err).unwrap();
+            return 1;
+        },
+    };
 
     match args.arg_file {
         Some(ref name) if &**name == "-" => { let _ = copy(&mut stdin(), &mut tmpfile); },
