@@ -1,8 +1,10 @@
 use std::fs::File;
 use std::io::Read;
 use std::mem::transmute;
-use std::thread::sleep_ms;
+use std::thread::sleep;
 use std::env;
+use std::time::Duration;
+
 
 fn main() {
     let delay = match env::args().nth(1).and_then(|s| s.parse::<f32>().ok()) {
@@ -28,6 +30,6 @@ fn main() {
         .unwrap();
 
     if delay > uptime {
-        sleep_ms((delay - uptime) as u32 * 1000);
+        sleep(Duration::from_secs((delay - uptime) as u64));
     }
 }
