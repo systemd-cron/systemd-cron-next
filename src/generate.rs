@@ -51,60 +51,60 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
         },
         Period::Minutely => {
             persistent = false;
-            Some("@minutely".to_owned())
+            Some("minutely".to_owned())
         },
         Period::Hourly => {
             if delay == 0 {
-                Some("@hourly".to_owned())
+                Some("hourly".to_owned())
             } else {
                 Some(format!("*-*-* *:{}:0", delay))
             }
         },
         Period::Midnight => {
             if delay == 0 {
-                Some("@daily".to_owned())
+                Some("daily".to_owned())
             } else {
                 Some(format!("*-*-* 0:{}:0", delay))
             }
         },
         Period::Daily => {
             if delay == 0 && hour == 0 {
-                Some("@daily".to_owned())
+                Some("daily".to_owned())
             } else {
                 Some(format!("*-*-* {}:{}:0", hour, delay))
             }
         },
         Period::Weekly => {
             if delay == 0 && hour == 0 {
-                Some("@weekly".to_owned())
+                Some("weekly".to_owned())
             } else {
                 Some(format!("Mon *-*-* {}:{}:0", hour, delay))
             }
         },
         Period::Monthly => {
             if delay == 0 && hour == 0 {
-                Some("@monthly".to_owned())
+                Some("monthly".to_owned())
             } else {
                 Some(format!("*-*-1 {}:{}:0", hour, delay))
             }
         },
         Period::Quaterly => {
             if delay == 0 && hour == 0 {
-                Some("@quaterly".to_owned())
+                Some("quaterly".to_owned())
             } else {
                 Some(format!("*-1,4,7,10-1 {}:{}:0", hour, delay))
             }
         },
         Period::Biannually => {
             if delay == 0 && hour == 0 {
-                Some("@semi-annually".to_owned())
+                Some("semiannually".to_owned())
             } else {
                 Some(format!("*-1,7-1 {}:{}:0", hour, delay))
             }
         },
         Period::Yearly => {
             if delay == 0 && hour == 0 {
-                Some("@yearly".to_owned())
+                Some("yearly".to_owned())
             } else {
                 Some(format!("*-1-1 {}:{}:0", hour, delay))
             }
