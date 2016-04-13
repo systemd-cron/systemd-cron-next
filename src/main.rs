@@ -1,7 +1,6 @@
 extern crate cronparse;
 extern crate libc;
 extern crate md5;
-extern crate users;
 
 #[macro_use]
 extern crate log;
@@ -16,6 +15,7 @@ use std::path::Path;
 
 use cronparse::crontab::{UserCrontabEntry, SystemCrontabEntry, AnacrontabEntry};
 
+mod getpwent;
 mod generate;
 mod process;
 

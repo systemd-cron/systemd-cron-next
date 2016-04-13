@@ -4,13 +4,14 @@ use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{symlink, MetadataExt, PermissionsExt};
 use std::path::Path;
 use std::collections::{BTreeMap, BTreeSet};
+use std::ffi::CStr;
 
 use cronparse::Limited;
 use cronparse::crontab::{CrontabEntry, SystemCrontabEntry, UserCrontabEntry};
 use cronparse::schedule::{Schedule, Period, Calendar};
 use cronparse::interval::Interval;
 
-use users::{get_user_by_name, get_user_by_uid};
+use getpwent::{PwEntIter, User};
 
 use super::{REBOOT_FILE, PACKAGE, LIB_DIR};
 
@@ -142,7 +143,11 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
     if let Some(cmd) = entry.command() {
 
         // make sure we know the user
-        let user = try!(entry.user().and_then(get_user_by_name).or_else(|| get_user_by_uid(owner))
+        let user = try!(entry.user().and_then(
+                |user| PwEntIter::new()
+                .and_then(|mut iter| iter.find(|&pw| unsafe {
+                    (*pw).pw_uid == owner || CStr::from_ptr((*pw).pw_name).to_bytes() == user.as_bytes()
+                })).map(|pw| unsafe { User::from_ptr(pw) }))
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "unknown user")));
 
         // generate unique cron job id
