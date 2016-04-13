@@ -1,19 +1,19 @@
 use std::io::{self, Write};
-use std::fs::{File, create_dir_all, set_permissions, metadata};
+use std::fs::{File, create_dir_all, metadata, set_permissions};
 use std::os::unix::ffi::OsStrExt;
-use std::os::unix::fs::{symlink, MetadataExt, PermissionsExt};
+use std::os::unix::fs::{MetadataExt, PermissionsExt, symlink};
 use std::path::Path;
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::CStr;
 
 use cronparse::Limited;
 use cronparse::crontab::{CrontabEntry, SystemCrontabEntry, UserCrontabEntry};
-use cronparse::schedule::{Schedule, Period, Calendar};
+use cronparse::schedule::{Calendar, Period, Schedule};
 use cronparse::interval::Interval;
 
 use getpwent::{PwEntIter, User};
 
-use super::{REBOOT_FILE, PACKAGE, LIB_DIR};
+use super::{LIB_DIR, PACKAGE, REBOOT_FILE};
 
 pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String>, path: &Path, dstdir: &Path) -> io::Result<()> {
     use cronparse::crontab::CrontabEntry::*;
@@ -22,118 +22,122 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
 
     let owner = try!(metadata(path)).uid();
 
-    let mut persistent = env.get("PERSISTENT").and_then(|v| match &**v {
-        "yes" | "true" | "1" => Some(true),
-        "auto" | "" => None,
-        _ => Some(false)
-    }).unwrap_or_else(|| match entry {
-        Anacron(_) | User(UserCrontabEntry { sched: Schedule::Period(_), .. }) | System(SystemCrontabEntry { sched: Schedule::Period(_), .. }) => true,
-        _ => false
-    });
+    let mut persistent = env.get("PERSISTENT")
+                            .and_then(|v| {
+                                match &**v {
+                                    "yes" | "true" | "1" => Some(true),
+                                    "auto" | "" => None,
+                                    _ => Some(false),
+                                }
+                            })
+                            .unwrap_or_else(|| {
+                                match entry {
+                                    Anacron(_) |
+                                    User(UserCrontabEntry { sched: Schedule::Period(_), .. }) |
+                                    System(SystemCrontabEntry { sched: Schedule::Period(_), .. }) => true,
+                                    _ => false,
+                                }
+                            });
 
-    let batch = env.get("BATCH").map(|v| match &**v {
-        "yes" | "true" | "1" => true,
-        _ => false
-    }).unwrap_or(false);
+    let batch = env.get("BATCH")
+                   .map(|v| {
+                       match &**v {
+                           "yes" | "true" | "1" => true,
+                           _ => false,
+                       }
+                   })
+                   .unwrap_or(false);
 
     let random_delay = env.get("RANDOM_DELAY").and_then(|v| v.parse::<u64>().ok()).unwrap_or(1);
     let mut delay = env.get("DELAY").and_then(|v| v.parse::<u64>().ok()).unwrap_or(0);
-    let hour = env.get("START_HOURS_RANGE").and_then(|v| v.splitn(1, '-').next().and_then(|v| v.parse::<u64>().ok())).unwrap_or(0);
+    let hour = env.get("START_HOURS_RANGE")
+                  .and_then(|v| v.splitn(1, '-').next().and_then(|v| v.parse::<u64>().ok()))
+                  .unwrap_or(0);
     let shell = env.get("SHELL").map(|v| &**v).unwrap_or("/bin/sh");
     let daemon_reload = metadata(REBOOT_FILE).map(|m| m.is_file()).unwrap_or(false);
 
-    let schedule = entry.period().and_then(|period| match *period {
-        Period::Reboot => {
-            persistent = false;
-            if delay == 0 {
-                delay = 1;
-            }
-            None
-        },
-        Period::Minutely => {
-            persistent = false;
-            Some("minutely".to_owned())
-        },
-        Period::Hourly => {
-            if delay == 0 {
-                Some("hourly".to_owned())
-            } else {
-                Some(format!("*-*-* *:{}:0", delay))
-            }
-        },
-        Period::Midnight => {
-            if delay == 0 {
-                Some("daily".to_owned())
-            } else {
-                Some(format!("*-*-* 0:{}:0", delay))
-            }
-        },
-        Period::Daily => {
-            if delay == 0 && hour == 0 {
-                Some("daily".to_owned())
-            } else {
-                Some(format!("*-*-* {}:{}:0", hour, delay))
-            }
-        },
-        Period::Weekly => {
-            if delay == 0 && hour == 0 {
-                Some("weekly".to_owned())
-            } else {
-                Some(format!("Mon *-*-* {}:{}:0", hour, delay))
-            }
-        },
-        Period::Monthly => {
-            if delay == 0 && hour == 0 {
-                Some("monthly".to_owned())
-            } else {
-                Some(format!("*-*-1 {}:{}:0", hour, delay))
-            }
-        },
-        Period::Quaterly => {
-            if delay == 0 && hour == 0 {
-                Some("quaterly".to_owned())
-            } else {
-                Some(format!("*-1,4,7,10-1 {}:{}:0", hour, delay))
-            }
-        },
-        Period::Biannually => {
-            if delay == 0 && hour == 0 {
-                Some("semiannually".to_owned())
-            } else {
-                Some(format!("*-1,7-1 {}:{}:0", hour, delay))
-            }
-        },
-        Period::Yearly => {
-            if delay == 0 && hour == 0 {
-                Some("yearly".to_owned())
-            } else {
-                Some(format!("*-1-1 {}:{}:0", hour, delay))
-            }
-        },
-        Period::Days(days) => {
-            // workaround for anacrontab
-            if days > 31 {
-                Some(format!("*-1/{}-1 {}:{}:0", days / 30, hour, delay))
-            } else {
-                Some(format!("*-*-1/{} {}:{}:0", days, hour, delay))
-            }
-        },
-    }).or_else(|| entry.calendar().and_then(|cal| {
-        let Calendar {
-            ref dows,
-            ref days,
-            ref mons,
-            ref hrs,
-            ref mins
-        } = *cal;
+    let schedule = entry.period()
+                        .and_then(|period| {
+                            match *period {
+                                Period::Reboot => {
+                                    persistent = false;
+                                    if delay == 0 {
+                                        delay = 1;
+                                    }
+                                    None
+                                }
+                                Period::Minutely => {
+                                    persistent = false;
+                                    Some("minutely".to_owned())
+                                }
+                                Period::Hourly => if delay == 0 { Some("hourly".to_owned()) } else { Some(format!("*-*-* *:{}:0", delay)) },
+                                Period::Midnight => {
+                                    if delay == 0 { Some("daily".to_owned()) } else { Some(format!("*-*-* 0:{}:0", delay)) }
+                                }
+                                Period::Daily => {
+                                    if delay == 0 && hour == 0 {
+                                        Some("daily".to_owned())
+                                    } else {
+                                        Some(format!("*-*-* {}:{}:0", hour, delay))
+                                    }
+                                }
+                                Period::Weekly => {
+                                    if delay == 0 && hour == 0 {
+                                        Some("weekly".to_owned())
+                                    } else {
+                                        Some(format!("Mon *-*-* {}:{}:0", hour, delay))
+                                    }
+                                }
+                                Period::Monthly => {
+                                    if delay == 0 && hour == 0 {
+                                        Some("monthly".to_owned())
+                                    } else {
+                                        Some(format!("*-*-1 {}:{}:0", hour, delay))
+                                    }
+                                }
+                                Period::Quaterly => {
+                                    if delay == 0 && hour == 0 {
+                                        Some("quaterly".to_owned())
+                                    } else {
+                                        Some(format!("*-1,4,7,10-1 {}:{}:0", hour, delay))
+                                    }
+                                }
+                                Period::Biannually => {
+                                    if delay == 0 && hour == 0 {
+                                        Some("semiannually".to_owned())
+                                    } else {
+                                        Some(format!("*-1,7-1 {}:{}:0", hour, delay))
+                                    }
+                                }
+                                Period::Yearly => {
+                                    if delay == 0 && hour == 0 {
+                                        Some("yearly".to_owned())
+                                    } else {
+                                        Some(format!("*-1-1 {}:{}:0", hour, delay))
+                                    }
+                                }
+                                Period::Days(days) => {
+                                    // workaround for anacrontab
+                                    if days > 31 {
+                                        Some(format!("*-1/{}-1 {}:{}:0", days / 30, hour, delay))
+                                    } else {
+                                        Some(format!("*-*-1/{} {}:{}:0", days, hour, delay))
+                                    }
+                                }
+                            }
+                        })
+                        .or_else(|| {
+                            entry.calendar().and_then(|cal| {
+                                let Calendar { ref dows, ref days, ref mons, ref hrs, ref mins } = *cal;
 
-        Some(format!("{} *-{}-{} {}:{}:00",
-                     linearize(&**dows, "", ToString::to_string),
-                     linearize(&**mons, "*", |&mon| (mon as u8).to_string()),
-                     linearize(&**days, "*", ToString::to_string),
-                     linearize(&**hrs, "*", ToString::to_string),
-                     linearize(&**mins, "*", ToString::to_string)))
-    }));
+                                Some(format!("{} *-{}-{} {}:{}:00",
+                                             linearize(&**dows, "", ToString::to_string),
+                                             linearize(&**mons, "*", |&mon| (mon as u8).to_string()),
+                                             linearize(&**days, "*", ToString::to_string),
+                                             linearize(&**hrs, "*", ToString::to_string),
+                                             linearize(&**mins, "*", ToString::to_string)))
+                            })
+                        });
 
     if daemon_reload && schedule.is_none() {
         warn!("skipping job from {}: \"{}\"", path.display(), entry);
@@ -143,12 +147,17 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
     if let Some(cmd) = entry.command() {
 
         // make sure we know the user
-        let user = try!(entry.user().and_then(
-                |user| PwEntIter::new()
-                .and_then(|mut iter| iter.find(|&pw| unsafe {
-                    (*pw).pw_uid == owner || CStr::from_ptr((*pw).pw_name).to_bytes() == user.as_bytes()
-                })).map(|pw| unsafe { User::from_ptr(pw) }))
-            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "unknown user")));
+        let user = try!(entry.user()
+                             .and_then(|user| {
+                                 PwEntIter::new()
+                                     .and_then(|mut iter| {
+                                         iter.find(|&pw| unsafe {
+                                             (*pw).pw_uid == owner || CStr::from_ptr((*pw).pw_name).to_bytes() == user.as_bytes()
+                                         })
+                                     })
+                                     .map(|pw| unsafe { User::from_ptr(pw) })
+                             })
+                             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "unknown user")));
 
         // generate unique cron job id
         let mut md5ctx = ::md5::Context::new();
@@ -265,7 +274,7 @@ Unit={service_unit_name}"###,
                 service_unit_name = service_unit_name,
                 ));
 
-            if cfg![feature="persistent"] {
+            if cfg![feature = "persistent"] {
                 try!(writeln!(timer_unit_file, "Persistent={}", persistent));
             }
 
@@ -285,7 +294,10 @@ Unit={service_unit_name}"###,
     Ok(())
 }
 
-fn linearize<T, C>(input: &[Interval<T>], star: &str, conv: C) -> String where T: Limited, C: Fn(&T) -> String {
+fn linearize<T, C>(input: &[Interval<T>], star: &str, conv: C) -> String
+    where T: Limited,
+          C: Fn(&T) -> String
+{
     if input.len() == 1 && input[0] == Interval::Full(1) {
         star.to_owned()
     } else {
@@ -305,7 +317,7 @@ fn tohex(input: &[u8]) -> String {
         match d {
             0...9 => (d + 0x30) as char,
             10...15 => (d + 0x57) as char,
-            _ => unreachable!("unexpected value: {}", d)
+            _ => unreachable!("unexpected value: {}", d),
         }
     }
 
@@ -316,4 +328,3 @@ fn tohex(input: &[u8]) -> String {
     }
     buf
 }
-

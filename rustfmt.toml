@@ -1,0 +1,11 @@
+newline_style = "Unix"
+max_width = 140
+fn_call_width = 120
+ideal_width = 120
+tab_spaces = 4
+fn_args_density = "Compressed"
+fn_arg_indent = "Tabbed"
+single_line_if_else = true
+reorder_imports = true
+chain_base_indent = "Tabbed"
+chain_indent = "Tabbed"

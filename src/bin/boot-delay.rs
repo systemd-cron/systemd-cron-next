@@ -21,11 +21,8 @@ fn main() {
         .map(|sz| {
             buf.iter()
                .position(|&c| c == 0x20)
-               .and_then(|p| if p < sz {
-                   unsafe { transmute::<_, &str>(&buf[..p]) }.parse::<f32>().ok()
-               } else {
-                   None
-               }).unwrap()
+               .and_then(|p| if p < sz { unsafe { transmute::<_, &str>(&buf[..p]) }.parse::<f32>().ok() } else { None })
+               .unwrap()
         })
         .unwrap();
 

@@ -3,7 +3,7 @@ extern crate libc;
 use std::ptr;
 use std::path::Path;
 use std::mem::uninitialized;
-use libc::{uid_t, gid_t, c_int, FILE, c_char, size_t, fopen, fclose};
+use libc::{FILE, c_char, c_int, fclose, fopen, gid_t, size_t, uid_t};
 use std::ffi::CStr;
 
 #[repr(C)]
@@ -18,12 +18,7 @@ pub struct PwEnt {
 }
 
 extern "C" {
-    fn fgetpwent_r(stream: *mut FILE,
-                   pwbuf: *mut PwEnt,
-                   buf: *mut c_char,
-                   buflen: size_t,
-                   pwbufp: *mut *mut PwEnt)
-                   -> c_int;
+    fn fgetpwent_r(stream: *mut FILE, pwbuf: *mut PwEnt, buf: *mut c_char, buflen: size_t, pwbufp: *mut *mut PwEnt) -> c_int;
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -89,24 +84,15 @@ impl PwEntIter {
     }
 
     pub fn from_path<P: AsRef<Path>>(path: P) -> Option<PwEntIter> {
-        unsafe {
-            path.as_ref().to_str().and_then(|p| {
-                PwEntIter::from_ptr(CStr::from_ptr(p.as_ptr() as *const c_char).as_ptr())
-            })
-        }
+        unsafe { path.as_ref().to_str().and_then(|p| PwEntIter::from_ptr(CStr::from_ptr(p.as_ptr() as *const c_char).as_ptr())) }
     }
 }
 
 impl Iterator for PwEntIter {
     type Item = *const PwEnt;
     fn next(&mut self) -> Option<*const PwEnt> {
-        if unsafe {
-            fgetpwent_r(self.stream,
-                        &mut self.pwbuf,
-                        &mut self.buf as *mut _ as *mut c_char,
-                        BUFLEN,
-                        &mut self.pwbufp)
-        } != 0 || self.pwbufp.is_null() {
+        if unsafe { fgetpwent_r(self.stream, &mut self.pwbuf, &mut self.buf as *mut _ as *mut c_char, BUFLEN, &mut self.pwbufp) } != 0 ||
+           self.pwbufp.is_null() {
             None
         } else {
             Some(self.pwbufp)
@@ -117,12 +103,8 @@ impl Iterator for PwEntIter {
 #[test]
 fn find_root() {
     let root = PwEntIter::new()
-                   .and_then(|mut iter| {
-                       iter.find(|&pw| unsafe {
-                           (*pw).pw_uid == 0 || CStr::from_ptr((*pw).pw_name).to_bytes() == b"root"
-                       })
-                   })
-                   .map(|pw| unsafe { User::from_ptr(pw) });
+        .and_then(|mut iter| iter.find(|&pw| unsafe { (*pw).pw_uid == 0 || CStr::from_ptr((*pw).pw_name).to_bytes() == b"root" }))
+        .map(|pw| unsafe { User::from_ptr(pw) });
     assert_eq!(root,
                Some(User {
                    name: String::from("root"),

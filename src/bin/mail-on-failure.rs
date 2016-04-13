@@ -1,7 +1,7 @@
 
 use std::env;
 use std::process::{Command, Stdio};
-use std::io::{Write, Result};
+use std::io::{Result, Write};
 
 macro_rules! try_log {
     ($exp:expr) => {
@@ -19,10 +19,11 @@ fn get_systemd_unit_property(unit: &str, prop: &str) -> Result<String> {
         .arg("--property")
         .arg(prop)
         .output()
-        .map(|out|
-             String::from_utf8_lossy(&out.stdout[prop.len() + 1..])
-             .trim_right_matches('\n')
-             .to_owned())
+        .map(|out| {
+            String::from_utf8_lossy(&out.stdout[prop.len() + 1..])
+                .trim_right_matches('\n')
+                .to_owned()
+        })
 }
 
 fn main() {
@@ -56,9 +57,9 @@ fn main() {
     }
 
     let mut hostname = String::from_utf8_lossy(&try_log!(Command::new("uname")
-        .arg("-n")
-        .output())
-        .stdout[..])
+                .arg("-n")
+                .output())
+            .stdout[..])
         .trim_right_matches('\n')
         .to_owned();
 
@@ -95,8 +96,7 @@ Auto-Submitted: auto-generated
         .spawn());
 
     if let Some(ref mut stdin) = mailer.stdin {
-        try_log!(stdin.write_all(head.as_bytes()).and_then(|_|
-                 stdin.write_all(&*status.stdout)));
+        try_log!(stdin.write_all(head.as_bytes()).and_then(|_| stdin.write_all(&*status.stdout)));
     }
 
     mailer.wait().unwrap();

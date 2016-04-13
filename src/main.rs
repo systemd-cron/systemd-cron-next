@@ -13,7 +13,7 @@ use std::os::unix::fs::symlink;
 use std::io::Write;
 use std::path::Path;
 
-use cronparse::crontab::{UserCrontabEntry, SystemCrontabEntry, AnacrontabEntry};
+use cronparse::crontab::{AnacrontabEntry, SystemCrontabEntry, UserCrontabEntry};
 
 mod getpwent;
 mod generate;
@@ -41,8 +41,8 @@ fn main() {
         None => {
             println!("Usage: systemd-crontab-generator <destination-directory>");
             return;
-        },
-        Some(path) => path
+        }
+        Some(path) => path,
     };
 
     let s = dest_dir.clone();
@@ -74,7 +74,8 @@ fn main() {
 fn generate_after_var_unit(dest_dir: &str) {
     let cron_after_var_unit_path = Path::new(dest_dir).join("cron-after-var.service");
     let mut cron_after_var_unit_file = try_!(File::create(&cron_after_var_unit_path));
-    try_!(writeln!(cron_after_var_unit_file, r###"[Unit]
+    try_!(writeln!(cron_after_var_unit_file,
+                   r###"[Unit]
 Description=Rerun systemd-crontab-generator because /var is a separate mount
 Documentation=man:systemd.cron(7)
 After=cron.target
@@ -83,8 +84,8 @@ ConditionDirectoryNotEmpty={statedir}
 [Service]
 Type=oneshot
 ExecStart=/bin/sh -c "{bindir}/systemctl daemon-reload ; {bindir}/systemctl try-restart cron.target""###,
-statedir = USERS_CRONTAB_DIR,
-bindir = BIN_DIR));
+                   statedir = USERS_CRONTAB_DIR,
+                   bindir = BIN_DIR));
 
     let multiuser_wants_path = Path::new(dest_dir).join("multi-user.target.wants");
     try_!(create_dir_all(&multiuser_wants_path));
