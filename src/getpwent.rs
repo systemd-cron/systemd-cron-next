@@ -1,7 +1,7 @@
 extern crate libc;
 
 use std::ptr;
-use std::path::Path;
+//use std::path::Path;
 use std::mem::uninitialized;
 use libc::{FILE, c_char, c_int, fclose, fopen, gid_t, size_t, uid_t};
 use std::ffi::CStr;
@@ -83,9 +83,9 @@ impl PwEntIter {
         unsafe { PwEntIter::from_ptr(b"/etc/passwd\0" as *const _ as *const c_char) }
     }
 
-    pub fn from_path<P: AsRef<Path>>(path: P) -> Option<PwEntIter> {
-        unsafe { path.as_ref().to_str().and_then(|p| PwEntIter::from_ptr(CStr::from_ptr(p.as_ptr() as *const c_char).as_ptr())) }
-    }
+    //pub fn from_path<P: AsRef<Path>>(path: P) -> Option<PwEntIter> {
+        //unsafe { path.as_ref().to_str().and_then(|p| PwEntIter::from_ptr(CStr::from_ptr(p.as_ptr() as *const c_char).as_ptr())) }
+    //}
 }
 
 impl Iterator for PwEntIter {
