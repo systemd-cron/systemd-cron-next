@@ -285,7 +285,11 @@ Unit={service_unit_name}"###,
             }
 
             if random_delay != 1 {
-                try!(writeln!(timer_unit_file, "AccuracySec={}m", random_delay));
+                if cfg!(feature="randomized-delay") {
+                    try!(writeln!(timer_unit_file, "RandomizedDelaySec={}m", random_delay));
+                } else {
+                    try!(writeln!(timer_unit_file, "AccuracySec={}m", random_delay));
+                }
             }
         }
         try!(symlink(timer_unit_path, cron_target_wants_path.join(timer_unit_name)));

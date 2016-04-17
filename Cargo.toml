@@ -1,6 +1,6 @@
 [package]
 name = "systemd-crontab-generator"
-version = "1.0.0-rc7"
+version = "1.0.0-rc8"
 description = "Systemd generator for crontab files support"
 readme = "README.md"
 repository = "https://github.com/systemd-cron/systemd-cron-next"
@@ -10,7 +10,7 @@ build = "build.rs"
 keywords = ["cron", "crontab", "systemd", "generator"]
 
 [features]
-default = ["sched-boot", "sched-hourly", "sched-daily", "sched-weekly", "sched-monthly"]
+default = ["sched-boot", "sched-hourly", "sched-daily", "sched-weekly", "sched-monthly", "randomized-delay"]
 
 sched-boot = []
 sched-hourly = []
@@ -21,6 +21,7 @@ sched-yearly = []
 sched-minutely = []
 sched-quarterly = []
 sched-semi-annually = []
+randomized-delay = []
 persistent = []
 
 [build-dependencies]

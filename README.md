@@ -87,6 +87,7 @@ To further control cron jobs, use `cron.target` unit.
     * systemd ≥ 209, yearly timers
     * systemd ≥ 212, persistent timers
     * systemd ≥ 217, minutely, quarterly & semi-annually timers
+    * systemd ≥ 229, real random delay support with `RandomizedDelaySec` option
 * [run-parts][]
 * /usr/sbin/sendmail (optional, evaluated at runtime)
 
@@ -155,6 +156,8 @@ Other options include:
   Default: `no`.
 * `--enable-persistent[=yes|no]` Make timers [persistent][5]. Requires systemd ≥ 212.
   Default: `no`.
+* `--enable-randomized-delay=[yes|no]` Use [`RandomizedDelaySec`][6] option for `RANDOM_DELAY` support. Requires systemd ≥ 229.
+  Default: `yes`.
 
 A typical configuration for the latest systemd would be:
 
@@ -163,6 +166,8 @@ A typical configuration for the latest systemd would be:
 If you only want the generator (you'll have to provide your own `/etc/crontab` to drive /etc/cron.daily/ etc...):
 
     $ ./configure --enable-boot=no --enable-hourly=no --enable-daily=no --enable-weekly=no --enable-month=no --enable-persistent --prefix=/usr --confdir=/etc
+
+[5]: https://www.freedesktop.org/software/systemd/man/systemd.timer.html#RandomizedDelaySec=
 
 ### Caveat
 

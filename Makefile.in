@@ -4,6 +4,7 @@ version		:= $(shell awk '/^version =/ { gsub("\"", "", $$3); print $$3; exit }' 
 
 schedules			:= @schedules@
 enable_persistent	:= @enable_persistent@
+enable_randomized_delay	:= @enable_randomized_delay@
 
 prefix		:= @prefix@
 bindir		:= @bindir@
@@ -41,6 +42,7 @@ endef
 
 null :=
 persistent = $(if $(filter $(enable_persistent),yes),persistent,)
+randomized_delay = $(if $(filter $(enable_randomized_delay),yes),randomized-delay,)
 
 all: build
 
@@ -66,7 +68,7 @@ build: all
 	    BIN_DIR="$(bindir)" CONF_DIR="$(confdir)" MAN_DIR="$(mandir)" DOC_DIR="$(docdir)" \
 	    DATA_DIR="$(datadir)" LIB_DIR="$(libdir)" UNIT_DIR="$(unitdir)" \
 	    cargo install --path $(CURDIR) --root $(builddir) \
-	    --features "$(foreach schedule,$(schedules),sched-$(schedule)) $(persistent)"
+	    --features "$(foreach schedule,$(schedules),sched-$(schedule)) $(persistent) $(randomized_delay)"
 
 install: build
 	install -m2755 -g `getent group cron || echo root` -s -D $(builddir)/bin/crontab $(DESTDIR)$(bindir)/crontab
