@@ -167,7 +167,9 @@ If you only want the generator (you'll have to provide your own `/etc/crontab` t
 
     $ ./configure --enable-boot=no --enable-hourly=no --enable-daily=no --enable-weekly=no --enable-month=no --enable-persistent --prefix=/usr --confdir=/etc
 
-[5]: https://www.freedesktop.org/software/systemd/man/systemd.timer.html#RandomizedDelaySec=
+[4]: https://en.wikipedia.org/wiki/Filesystem_Hierarchy_Standard
+[5]: https://www.freedesktop.org/software/systemd/man/systemd.timer.html#Persistent=
+[6]: https://www.freedesktop.org/software/systemd/man/systemd.timer.html#RandomizedDelaySec=
 
 ### Caveat
 
