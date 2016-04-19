@@ -1,17 +1,17 @@
-use std::io::{self, Write};
+use std::io::{self, BufRead, Write};
 use std::fs::{File, create_dir_all, metadata, set_permissions};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::fs::{MetadataExt, PermissionsExt, symlink};
 use std::path::Path;
 use std::collections::{BTreeMap, BTreeSet};
-use std::ffi::CStr;
 
 use cronparse::Limited;
 use cronparse::crontab::{CrontabEntry, SystemCrontabEntry, UserCrontabEntry};
 use cronparse::schedule::{Calendar, Period, Schedule};
 use cronparse::interval::Interval;
 
-use getpwent::{PwEntIter, User};
+use pgs_files::Entries;
+use pgs_files::passwd::PasswdEntry;
 
 use super::{LIB_DIR, PACKAGE, REBOOT_FILE};
 
@@ -148,15 +148,7 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
 
         // make sure we know the user
         let user = try!(entry.user()
-                             .and_then(|user| {
-                                 PwEntIter::new()
-                                     .and_then(|mut iter| {
-                                         iter.find(|&pw| unsafe {
-                                             (*pw).pw_uid == owner || CStr::from_ptr((*pw).pw_name).to_bytes() == user.as_bytes()
-                                         })
-                                     })
-                                     .map(|pw| unsafe { User::from_ptr(pw) })
-                             })
+                             .and_then(|user| Entries::<PasswdEntry>::new(Path::new("/etc/passwd")).find(|entry| entry.uid == owner || entry.name == user))
                              .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "unknown user")));
 
         // generate unique cron job id
@@ -219,8 +211,8 @@ SourcePath={source_crontab_path}"###,
 
             if user.uid != 0 {
                 try!(writeln!(service_unit_file, "Requires=systemd-user-sessions.service"));
-                if !user.home_dir.is_empty() {
-                    try!(writeln!(service_unit_file, "RequiresMountsFor={}", user.home_dir));
+                if !user.dir.is_empty() {
+                    try!(writeln!(service_unit_file, "RequiresMountsFor={}", user.dir));
                 }
             }
 

@@ -1,35 +1,19 @@
 [package]
-name = "systemd-crontab-generator"
-version = "1.0.0-rc8"
-description = "Systemd generator for crontab files support"
-readme = "README.md"
-repository = "https://github.com/systemd-cron/systemd-cron-next"
-license = "MIT"
 authors = ["Konstantin Stepanov <me@kstep.me>"]
 build = "build.rs"
+description = "Systemd generator for crontab files support"
 keywords = ["cron", "crontab", "systemd", "generator"]
-
-[features]
-default = ["sched-boot", "sched-hourly", "sched-daily", "sched-weekly", "sched-monthly", "randomized-delay"]
-
-sched-boot = []
-sched-hourly = []
-sched-daily = []
-sched-weekly = []
-sched-monthly = []
-sched-yearly = []
-sched-minutely = []
-sched-quarterly = []
-sched-semi-annually = []
-randomized-delay = []
-persistent = []
+license = "MIT"
+name = "systemd-crontab-generator"
+readme = "README.md"
+repository = "https://github.com/systemd-cron/systemd-cron-next"
+version = "1.0.0-rc9"
 
 [build-dependencies]
-rustc-serialize = "0.3.16"
 handlebars = "0.12.0"
+rustc-serialize = "0.3.16"
 
 [dependencies]
-rustc-serialize = "0.3.16"
 cronparse = "0.5.0"
 docopt = "0.6.78"
 glob = "0.2.10"
@@ -37,13 +21,31 @@ kernlog = "0.2.1"
 libc = "0.2.2"
 log = "0.3.4"
 md5 = "0.1.1"
+pgs-files = "0.0.6"
+rustc-serialize = "0.3.16"
 tempfile = "1.1.3"
 time = "0.1.34"
 users = "0.4.4"
 
+[features]
+default = ["sched-boot", "sched-hourly", "sched-daily", "sched-weekly", "sched-monthly", "randomized-delay"]
+persistent = []
+randomized-delay = []
+sched-boot = []
+sched-daily = []
+sched-hourly = []
+sched-minutely = []
+sched-monthly = []
+sched-quarterly = []
+sched-semi-annually = []
+sched-weekly = []
+sched-yearly = []
+
+[profile]
+
 [profile.release]
-lto = true
 codegen-units = 1
-opt-level = 3
 debug = false
 debug-assertions = false
+lto = true
+opt-level = 3
