@@ -7,7 +7,7 @@ license = "MIT"
 name = "systemd-crontab-generator"
 readme = "README.md"
 repository = "https://github.com/systemd-cron/systemd-cron-next"
-version = "1.0.0-rc9"
+version = "1.0.0"
 
 [build-dependencies]
 handlebars = "0.12.0"
