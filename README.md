@@ -12,7 +12,7 @@ crontab and anacrontab files from usual places like `/etc/crontab` and `/var/spo
 and generating systemd timers and services. You can use `cron.target` as a single control
 point for the generated units.
 
-It's intended to be drop-in replacement for all cron implementations.
+It's intended to be a drop-in replacement for all cron implementations.
 
 ## Rationale
 
@@ -20,23 +20,22 @@ The crontab generator for systemd (implemented in C) was already [published][] o
 but was later [declined][] by Lennart:
 
 > I am not convinced this is a really good idea. From my perspective at
-least it appears that we should much rather just convert the crontabs
-and that's it. Unlike sysv init scripts the number of crontab in use (at
+least it appears that we should much rather just convert the crontabs and that's it. Unlike sysv init scripts the number of crontab in use (at
 least on Fedora) is relatively small, and very rare in third-party
 packages.
 >
 > Lennart
 
-While I'm generally agree with him, I'm not totally convinced it's always convenient to herd a bunch of
+While I generally agree with him, I'm not totally convinced it's always convenient to herd a bunch of
 separate `*.timer` and `*.service` files. I find convenient to have all jobs schedule in one single file,
-and it's more obvious to see relations in jobs scheduling if you have several jobs on sight at once.
+and it's more obvious to see relations in jobs scheduling if you have several jobs in sight at once.
 
 All things considered, I think people should have an alternative here, so I decided to support
 the idea of systemd crontab generator. Though the original C implementation of crontab parser
 from maillist is very incomplete: it doesn't support monotonic schedules (like `@daily` or `@yearly`),
 it can't parse comments and environment variable settings, etc.
 
-Hence I decided to create **systemd-crontab-generator**.
+Hence, I decided to create **systemd-crontab-generator**.
 
 [published]: http://lists.freedesktop.org/archives/systemd-devel/2013-August/012591.html
 [declined]: http://lists.freedesktop.org/archives/systemd-devel/2013-September/013120.html
@@ -44,11 +43,11 @@ Hence I decided to create **systemd-crontab-generator**.
 ## History
 
 I'm not very good in C, so C implementation (while it's recommended for generators) whould take
-me ages to write, so at first I used Python for proof-of-concept implementation.
+me ages to write, so at first, I used Python for proof-of-concept implementation.
 Then my small home project was noticed by **[@systemd-cron][]** project and eventually was merged
-into it and evolved thanks to **Alexanre Detiste**, **Dwayne Bent** and others.
+into it and evolved thanks to **Alexandre Detiste**, **Dwayne Bent** and others.
 
-Still I beared in mind the image of the project's future: rewrite it in systems language.
+Still I bore in mind the image of the project's future: rewrite it in a systems language.
 Python, being VM-based scripting language is not the best choice for system service:
 it's slow (the slowest systemd generator ever, actually), have problems with multithreading,
 requires a lot of hacks like setgid/setuid C helper to implement crontab, etc.
@@ -56,8 +55,8 @@ requires a lot of hacks like setgid/setuid C helper to implement crontab, etc.
 Meanwhile the [Rust][] systems language, I liked very much from the very beginning,
 [reached its 1.0][announce], so I decided to grab the moment and rewrite everything in Rust.
 
-The current version you are starring at is meant to be a successor of **[@systemd-cron][]**
-project, fully rewritten in Rust from ground up, while preserving experience, systemd unit
+The current version you are looking at is meant to be a successor of **[@systemd-cron][]**
+The project, entirely rewritten in Rust from ground up, while preserving experience, systemd unit
 templates and main algorithms and solutions polished in Python version by **[@systemd-cron][]** team.
 
 [Rust]: http://www.rust-lang.org
@@ -185,7 +184,7 @@ to ensure that @reboot scripts doesn't trigger right away:
 
 ## Disclaimer
 
-This is a beta product! Use at your own risk! I'm not responsible for any data losses,
+This is a beta product! Use at your risk! I'm not responsible for any data losses,
 time losses, money losses or any other failures due to use or misuse of this project!
 I've run this product on my local server for several months without issues, but it does not
 mean you will have no issues as well! Don't blame me for any crashes because of the product!
@@ -202,7 +201,7 @@ Crontab man page is derived from [Vixie Cron][vixie] and licensed under *Paul-Vi
 ## Contribution
 
 You are most welcome to post [bugs][issues] and [PRs][pulls]!
-Also check out [comments][] in AUR for current news about Arch package status.
+Also, check out [comments][] in AUR for current news about Arch package status.
 
 [issues]: https://github.com/systemd-cron/systemd-cron-next/issues
 [pulls]: https://github.com/systemd-cron/systemd-cron-next/pulls
@@ -215,7 +214,7 @@ Original **[@systemd-cron][]** project:
 - © 2013 Dominik Peteler
 - © 2014 Daniel Schaal <farbing@web.de>
 
-Systemd crontab generator evolution, tooling and support:
+Systemd crontab generator evolution, tooling, and support:
 - © 2014 Alexandre Detiste <alexandre@detiste.be>
 - © 2014 Dwayne Bent
 
