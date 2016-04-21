@@ -10,8 +10,7 @@ use cronparse::crontab::{CrontabEntry, SystemCrontabEntry, UserCrontabEntry};
 use cronparse::schedule::{Calendar, Period, Schedule};
 use cronparse::interval::Interval;
 
-use pgs_files::Entries;
-use pgs_files::passwd::PasswdEntry;
+use pgs_files::passwd::{get_entry_by_name, get_entry_by_uid};
 
 use super::{LIB_DIR, PACKAGE, REBOOT_FILE};
 
@@ -148,7 +147,8 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
 
         // make sure we know the user
         let user = try!(entry.user()
-                             .and_then(|user| Entries::<PasswdEntry>::new(Path::new("/etc/passwd")).find(|entry| entry.uid == owner || entry.name == user))
+                             .and_then(get_entry_by_name)
+                             .or_else(|| get_entry_by_uid(owner))
                              .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "unknown user")));
 
         // generate unique cron job id
