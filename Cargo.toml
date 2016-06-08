@@ -7,7 +7,7 @@ license = "MIT"
 name = "systemd-crontab-generator"
 readme = "README.md"
 repository = "https://github.com/systemd-cron/systemd-cron-next"
-version = "1.0.1"
+version = "1.0.2"
 
 [build-dependencies]
 handlebars = "0.12.0"
@@ -25,7 +25,7 @@ pgs-files = "0.0.6"
 rustc-serialize = "0.3.16"
 tempfile = "1.1.3"
 time = "0.1.34"
-users = "0.4.4"
+users = "0.5.1"
 
 [features]
 default = ["sched-boot", "sched-hourly", "sched-daily", "sched-weekly", "sched-monthly", "randomized-delay"]

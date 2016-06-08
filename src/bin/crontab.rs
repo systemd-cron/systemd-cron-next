@@ -117,7 +117,7 @@ fn list(cron_file: &Path, cron_user: &User, _args: &Args) -> i32 {
     if let Err(e) = File::open(cron_file).map(|mut file| copy(&mut file, &mut stdout())) {
         use std::io::ErrorKind::*;
         match e.kind() {
-            NotFound => println!("no crontab for {}", cron_user.name),
+            NotFound => println!("no crontab for {}", cron_user.name()),
             _ => println!("failed to read {}: {}", cron_file.display(), e),
         }
         return 1;
@@ -132,7 +132,7 @@ fn remove(cron_file: &Path, cron_user: &User, args: &Args) -> i32 {
         if let Err(e) = fs::remove_file(cron_file) {
             use std::io::ErrorKind::*;
             match e.kind() {
-                    NotFound => writeln!(stderr, "no crontab for {}", cron_user.name),
+                    NotFound => writeln!(stderr, "no crontab for {}", cron_user.name()),
                     _ => writeln!(stderr, "failed to remove {}: {}", cron_file.display(), e),
                 }
                 .unwrap();
@@ -194,8 +194,8 @@ fn edit(cron_file: &Path, cron_user: &User, _args: &Args) -> i32 {
 
     tmpfile.flush().unwrap();
     {
-        change_owner(tmpfile.path(), cron_user.uid, cron_user.primary_group).unwrap();
-        let _guard = users::switch_user_group(cron_user.uid, cron_user.primary_group);
+        change_owner(tmpfile.path(), cron_user.uid(), cron_user.primary_group_id()).unwrap();
+        let _guard = users::switch::switch_user_group(cron_user.uid(), cron_user.primary_group_id());
         match Command::new(editor).arg(tmpfile.path()).status() {
             Ok(status) if status.success() => (),
             _ => {
@@ -250,7 +250,7 @@ fn replace(cron_file: &Path, cron_user: &User, args: &Args) -> i32 {
         return 1;
     }
 
-    change_owner(cron_file, cron_user.uid, cron_user.primary_group).unwrap();
+    change_owner(cron_file, cron_user.uid(), cron_user.primary_group_id()).unwrap();
 
     0
 }
@@ -292,7 +292,7 @@ fn main() {
         _ => (),
     }
 
-    let cron_file = PathBuf::from(USERS_CRONTAB_DIR).join(cron_user.name.clone());
+    let cron_file = PathBuf::from(USERS_CRONTAB_DIR).join(cron_user.name());
 
     exit(match args {
         Args { flag_show: true, .. } => show(&*cron_file, &cron_user, &args),
