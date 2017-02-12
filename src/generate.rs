@@ -230,6 +230,7 @@ ExecStart={command}"###,
 
             if user.uid != 0 {
                 try!(writeln!(service_unit_file, "User={}", user.name));
+                try!(writeln!(service_unit_file, "WorkingDirectory=~"));
             }
 
             if let Some(group) = entry.group() {
