@@ -5,6 +5,7 @@ version		:= $(shell awk '/^version =/ { gsub("\"", "", $$3); print $$3; exit }' 
 schedules			:= @schedules@
 enable_persistent	:= @enable_persistent@
 enable_randomized_delay	:= @enable_randomized_delay@
+enable_strip		:= @enable_strip@
 
 prefix		:= @prefix@
 bindir		:= @bindir@
@@ -43,6 +44,7 @@ endef
 null :=
 persistent = $(if $(filter $(enable_persistent),yes),persistent,)
 randomized_delay = $(if $(filter $(enable_randomized_delay),yes),randomized-delay,)
+strip = $(if $(filter $(enable_strip),yes),-s,)
 
 all: build
 
@@ -71,11 +73,11 @@ build: all
 	    --features "$(foreach schedule,$(schedules),sched-$(schedule)) $(persistent) $(randomized_delay)"
 
 install: build
-	install -m2755 -g `getent group cron || echo root` -s -D $(builddir)/bin/crontab $(DESTDIR)$(bindir)/crontab
-	install -m755 -s -D $(builddir)/bin/systemd-crontab-generator $(DESTDIR)$(libdir)/systemd/system-generators/systemd-crontab-generator
-	install -m755 -s -D $(builddir)/bin/remove-stale-stamps $(DESTDIR)$(libdir)/$(packagedir)/remove-stale-stamps
-	install -m755 -s -D $(builddir)/bin/mail-on-failure $(DESTDIR)$(libdir)/$(packagedir)/mail-on-failure
-	install -m755 -s -D $(builddir)/bin/boot-delay $(DESTDIR)$(libdir)/$(packagedir)/boot-delay
+	install -m2755 -g `getent group cron || echo root` $(strip) -D $(builddir)/bin/crontab $(DESTDIR)$(bindir)/crontab
+	install -m755 $(strip) -D $(builddir)/bin/systemd-crontab-generator $(DESTDIR)$(libdir)/systemd/system-generators/systemd-crontab-generator
+	install -m755 $(strip) -D $(builddir)/bin/remove-stale-stamps $(DESTDIR)$(libdir)/$(packagedir)/remove-stale-stamps
+	install -m755 $(strip) -D $(builddir)/bin/mail-on-failure $(DESTDIR)$(libdir)/$(packagedir)/mail-on-failure
+	install -m755 $(strip) -D $(builddir)/bin/boot-delay $(DESTDIR)$(libdir)/$(packagedir)/boot-delay
 
 	install -m644 -D $(builddir)/man/systemd.cron.7 $(DESTDIR)$(mandir)/man7/systemd.cron.7
 	install -m644 -D $(builddir)/man/crontab.1 $(DESTDIR)$(mandir)/man1/crontab.1
