@@ -157,6 +157,8 @@ Other options include:
   Default: `no`.
 * `--enable-randomized-delay=[yes|no]` Use [`RandomizedDelaySec`][6] option for `RANDOM_DELAY` support. Requires systemd ≥ 229.
   Default: `yes`.
+* `--enable-strip=[yes|no]` Strip binaries.
+  Default: `yes`.
 
 A typical configuration for the latest systemd would be:
 
