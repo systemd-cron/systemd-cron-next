@@ -28,7 +28,6 @@ time = "0.1.34"
 users = "0.5.1"
 
 [features]
-default = ["sched-boot", "sched-hourly", "sched-daily", "sched-weekly", "sched-monthly", "randomized-delay"]
 persistent = []
 randomized-delay = []
 sched-boot = []
