@@ -69,9 +69,9 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
                                     persistent = false;
                                     Some("minutely".to_owned())
                                 }
-                                Period::Hourly => if delay == 0 { Some("hourly".to_owned()) } else { Some(format!("*-*-* *:{}:0", delay)) },
+                                Period::Hourly => if delay == 0 { Some("hourly".to_owned()) } else { Some(format!("*-*-* *:{}:0 UTC", delay)) },
                                 Period::Midnight => {
-                                    if delay == 0 { Some("daily".to_owned()) } else { Some(format!("*-*-* 0:{}:0", delay)) }
+                                    if delay == 0 { Some("daily".to_owned()) } else { Some(format!("*-*-* 0:{}:0 UTC", delay)) }
                                 }
                                 Period::Daily => {
                                     if delay == 0 && hour == 0 {
@@ -84,28 +84,28 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
                                     if delay == 0 && hour == 0 {
                                         Some("weekly".to_owned())
                                     } else {
-                                        Some(format!("Mon *-*-* {}:{}:0", hour, delay))
+                                        Some(format!("Mon *-*-* {}:{}:0 UTC", hour, delay))
                                     }
                                 }
                                 Period::Monthly => {
                                     if delay == 0 && hour == 0 {
                                         Some("monthly".to_owned())
                                     } else {
-                                        Some(format!("*-*-1 {}:{}:0", hour, delay))
+                                        Some(format!("*-*-1 {}:{}:0 UTC", hour, delay))
                                     }
                                 }
                                 Period::Quaterly => {
                                     if delay == 0 && hour == 0 {
                                         Some("quaterly".to_owned())
                                     } else {
-                                        Some(format!("*-1,4,7,10-1 {}:{}:0", hour, delay))
+                                        Some(format!("*-1,4,7,10-1 {}:{}:0 UTC", hour, delay))
                                     }
                                 }
                                 Period::Biannually => {
                                     if delay == 0 && hour == 0 {
                                         Some("semiannually".to_owned())
                                     } else {
-                                        Some(format!("*-1,7-1 {}:{}:0", hour, delay))
+                                        Some(format!("*-1,7-1 {}:{}:0 UTC", hour, delay))
                                     }
                                 }
                                 Period::Yearly => {
@@ -118,9 +118,9 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
                                 Period::Days(days) => {
                                     // workaround for anacrontab
                                     if days > 31 {
-                                        Some(format!("*-1/{}-1 {}:{}:0", days / 30, hour, delay))
+                                        Some(format!("*-1/{}-1 {}:{}:0 UTC", days / 30, hour, delay))
                                     } else {
-                                        Some(format!("*-*-1/{} {}:{}:0", days, hour, delay))
+                                        Some(format!("*-*-1/{} {}:{}:0 UTC", days, hour, delay))
                                     }
                                 }
                             }
@@ -129,7 +129,7 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
                             entry.calendar().and_then(|cal| {
                                 let Calendar { ref dows, ref days, ref mons, ref hrs, ref mins } = *cal;
 
-                                Some(format!("{} *-{}-{} {}:{}:00",
+                                Some(format!("{} *-{}-{} {}:{}:0 UTC",
                                              linearize(&**dows, "", ToString::to_string),
                                              linearize(&**mons, "*", |&mon| (mon as u8).to_string()),
                                              linearize(&**days, "*", ToString::to_string),
