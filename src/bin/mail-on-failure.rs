@@ -21,7 +21,7 @@ fn get_systemd_unit_property(unit: &str, prop: &str) -> Result<String> {
         .output()
         .map(|out| {
             String::from_utf8_lossy(&out.stdout[prop.len() + 1..])
-                .trim_right_matches('\n')
+                .trim_end_matches('\n')
                 .to_owned()
         })
 }
@@ -60,7 +60,7 @@ fn main() {
                 .arg("-n")
                 .output())
             .stdout[..])
-        .trim_right_matches('\n')
+        .trim_end_matches('\n')
         .to_owned();
 
     if hostname.len() == 0 {
