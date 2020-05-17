@@ -7,12 +7,13 @@ extern crate pgs_files;
 extern crate log;
 extern crate kernlog;
 
-use std::thread::spawn;
 use std::env;
-use std::fs::{File, create_dir_all, metadata};
+use std::fs::{create_dir_all, metadata, File};
+use std::io::{self, Error, Write};
 use std::os::unix::fs::symlink;
-use std::io::Write;
 use std::path::Path;
+use std::process::exit;
+use std::thread::spawn;
 
 use cronparse::crontab::{AnacrontabEntry, SystemCrontabEntry, UserCrontabEntry};
 
@@ -20,27 +21,18 @@ mod generate;
 mod process;
 
 include!(concat!(env!("OUT_DIR"), "/config.rs"));
-static SYSTEM_CRONTAB_DIR: &'static str = "/etc/cron.d";  // SystemCrontabEntry
-static SYSTEM_CRONTAB_FILE: &'static str = "/etc/crontab";
-static ANACRONTAB_FILE: &'static str = "/etc/anacrontab";  // AnacrontabEntry
-static REBOOT_FILE: &'static str = "/run/crond.reboot";
+static SYSTEM_CRONTAB_DIR: &str = "/etc/cron.d"; // SystemCrontabEntry
+static SYSTEM_CRONTAB_FILE: &str = "/etc/crontab";
+static ANACRONTAB_FILE: &str = "/etc/anacrontab"; // AnacrontabEntry
+static REBOOT_FILE: &str = "/run/crond.reboot";
 
-macro_rules! try_ {
-    ($exp:expr) => {
-        match $exp {
-            Ok(value) => value,
-            Err(err) => { error!("{}", err); return; }
-        }
-    }
-}
-
-fn main() {
+fn main() -> Result<(), Error> {
     log::set_logger(|filter| kernlog::KernelLog::init_level(log::LogLevelFilter::Error, filter)).unwrap();
 
     let dest_dir = match env::args().nth(1) {
         None => {
             println!("Usage: systemd-crontab-generator <destination-directory>");
-            return;
+            exit(1);
         }
         Some(path) => path,
     };
@@ -53,6 +45,7 @@ fn main() {
 
         process::process_crontab_dir::<UserCrontabEntry, _>(USERS_CRONTAB_DIR, s);
         create_reboot_lock_file();
+        Ok(())
     });
 
     let s = dest_dir.clone();
@@ -61,7 +54,7 @@ fn main() {
         process::process_crontab_dir::<SystemCrontabEntry, _>(SYSTEM_CRONTAB_DIR, &s);
     });
 
-    let s = dest_dir.clone();
+    let s = dest_dir;
     let anacron_thread = spawn(move || {
         process::process_crontab_file::<AnacrontabEntry, _, _>(ANACRONTAB_FILE, &s);
     });
@@ -69,13 +62,16 @@ fn main() {
     let _ = user_thread.join();
     let _ = system_thread.join();
     let _ = anacron_thread.join();
+
+    Ok(())
 }
 
-fn generate_after_var_unit(dest_dir: &str) {
+fn generate_after_var_unit(dest_dir: &str) -> Result<(), io::Error> {
     let cron_after_var_unit_path = Path::new(dest_dir).join("cron-after-var.service");
-    let mut cron_after_var_unit_file = try_!(File::create(&cron_after_var_unit_path));
-    try_!(writeln!(cron_after_var_unit_file,
-                   r###"[Unit]
+    let mut cron_after_var_unit_file = File::create(&cron_after_var_unit_path)?;
+    writeln!(
+        cron_after_var_unit_file,
+        r###"[Unit]
 Description=Rerun systemd-crontab-generator because /var is a separate mount
 Documentation=man:systemd.cron(7)
 After=cron.target
@@ -84,12 +80,14 @@ ConditionDirectoryNotEmpty={statedir}
 [Service]
 Type=oneshot
 ExecStart=/bin/sh -c "{bindir}/systemctl daemon-reload ; {bindir}/systemctl try-restart cron.target""###,
-                   statedir = USERS_CRONTAB_DIR,
-                   bindir = BIN_DIR));
+        statedir = USERS_CRONTAB_DIR,
+        bindir = BIN_DIR
+    )?;
 
     let multiuser_wants_path = Path::new(dest_dir).join("multi-user.target.wants");
-    try_!(create_dir_all(&multiuser_wants_path));
-    try_!(symlink(cron_after_var_unit_path, multiuser_wants_path.join("cron-after-var.service")));
+    create_dir_all(&multiuser_wants_path)?;
+    symlink(cron_after_var_unit_path, multiuser_wants_path.join("cron-after-var.service"))?;
+    Ok(())
 }
 
 fn create_reboot_lock_file() {

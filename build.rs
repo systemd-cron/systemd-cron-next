@@ -1,13 +1,13 @@
 extern crate handlebars;
 extern crate rustc_serialize;
 
-use std::env;
-use std::path::Path;
-use std::fs::{self, File, create_dir_all};
-use std::io::{Read, Write};
 use std::collections::BTreeMap;
+use std::env;
+use std::fs::{self, create_dir_all, File};
+use std::io::{Read, Write};
+use std::path::Path;
 
-use handlebars::{Handlebars, Context, Template};
+use handlebars::{Context, Handlebars, Template};
 use rustc_serialize::json::{Json, ToJson};
 
 static UNITS_DIR: &'static str = "units";
@@ -24,21 +24,29 @@ fn main() {
     let data = build_render_data();
 
     let mut config = File::create(out_dir.clone() + "/config.rs").unwrap();
-    writeln!(config, "pub static USERS_CRONTAB_DIR: &'static str = {:?};", data["statedir"].as_string().unwrap()).unwrap();
-    writeln!(config, "pub static PACKAGE: &'static str = {:?};", data["package"].as_string().unwrap()).unwrap();
-    writeln!(config, "pub static BIN_DIR: &'static str = {:?};", data["bindir"].as_string().unwrap()).unwrap();
-    writeln!(config, "pub static LIB_DIR: &'static str = {:?};", data["libdir"].as_string().unwrap()).unwrap();
+    writeln!(
+        config,
+        "pub static USERS_CRONTAB_DIR: &str = {:?};",
+        data["statedir"].as_string().unwrap()
+    )
+    .unwrap();
+    writeln!(config, "pub static PACKAGE: &str = {:?};", data["package"].as_string().unwrap()).unwrap();
+    writeln!(config, "pub static BIN_DIR: &str = {:?};", data["bindir"].as_string().unwrap()).unwrap();
+    writeln!(config, "pub static LIB_DIR: &str = {:?};", data["libdir"].as_string().unwrap()).unwrap();
 
     let mut data = Json::Object(data);
     let schedules = get_required_schedules();
 
     for schedule in schedules.iter() {
-        data.as_object_mut().unwrap().insert("schedule".to_owned(), Json::String(schedule.clone()));
-        for schedule_unit in [ "target", "timer", "service" ].iter() {
+        data.as_object_mut()
+            .unwrap()
+            .insert("schedule".to_owned(), Json::String(schedule.clone()));
+        for schedule_unit in ["target", "timer", "service"].iter() {
             compile_template(
                 format!("{}/cron-schedule.{}.in", UNITS_DIR, schedule_unit),
                 output.join("units").join(format!("cron-{}.{}", schedule, schedule_unit)),
-                &data);
+                &data,
+            );
         }
     }
 
@@ -49,12 +57,18 @@ fn main() {
 }
 
 fn compile_template<S: AsRef<Path>, T: AsRef<Path>>(source_file: S, target_file: T, data: &Json) {
-    println!("compiling from template: {:?} -> {:?}...", source_file.as_ref(), target_file.as_ref());
+    println!(
+        "compiling from template: {:?} -> {:?}...",
+        source_file.as_ref(),
+        target_file.as_ref()
+    );
 
-    let tmpl = File::open(source_file).and_then(|mut file| {
-        let mut buf = String::new();
-        file.read_to_string(&mut buf).map(|_| Template::compile(&*buf).unwrap())
-    }).unwrap();
+    let tmpl = File::open(source_file)
+        .and_then(|mut file| {
+            let mut buf = String::new();
+            file.read_to_string(&mut buf).map(|_| Template::compile(&*buf).unwrap())
+        })
+        .unwrap();
 
     let mut handle = Handlebars::new();
     handle.register_template("default", tmpl);
@@ -68,7 +82,7 @@ fn compile_templates<P: AsRef<Path>>(source_dir: &str, output_dir: P, data: &Jso
         let entry = entry.unwrap();
         let name = entry.file_name().into_string().unwrap();
         if name.ends_with(".in") && !name.starts_with("cron-schedule.") {
-            let target = output_dir.as_ref().join(&name[..name.len()-3]);
+            let target = output_dir.as_ref().join(&name[..name.len() - 3]);
             compile_template(entry.path(), target, data);
         }
     }
@@ -82,23 +96,44 @@ fn build_render_data() -> BTreeMap<String, Json> {
 
     ctx.insert("package".to_owned(), Json::String(package.to_owned()));
 
-    ctx.insert("bindir".to_owned(), Json::String(env::var("BIN_DIR").unwrap_or_else(|_| prefix.clone() + "/bin")));
-    ctx.insert("confdir".to_owned(), Json::String(env::var("CONF_DIR").unwrap_or_else(|_| prefix.clone() + "/etc")));
+    ctx.insert(
+        "bindir".to_owned(),
+        Json::String(env::var("BIN_DIR").unwrap_or_else(|_| prefix.clone() + "/bin")),
+    );
+    ctx.insert(
+        "confdir".to_owned(),
+        Json::String(env::var("CONF_DIR").unwrap_or_else(|_| prefix.clone() + "/etc")),
+    );
 
     let datadir = env::var("DATA_DIR").unwrap_or_else(|_| prefix.clone() + "/share");
     let libdir = env::var("LIB_DIR").unwrap_or_else(|_| prefix.clone() + "/lib");
 
-    ctx.insert("mandir".to_owned(), Json::String(env::var("MAN_DIR").unwrap_or_else(|_| datadir.clone() + "/man")));
-    ctx.insert("docdir".to_owned(), Json::String(env::var("DOC_DIR").unwrap_or_else(|_| datadir.clone() + "/doc/" + package)));
-    ctx.insert("unitdir".to_owned(), Json::String(env::var("UNIT_DIR").unwrap_or_else(|_| libdir.clone() + "/systemd/system")));
+    ctx.insert(
+        "mandir".to_owned(),
+        Json::String(env::var("MAN_DIR").unwrap_or_else(|_| datadir.clone() + "/man")),
+    );
+    ctx.insert(
+        "docdir".to_owned(),
+        Json::String(env::var("DOC_DIR").unwrap_or_else(|_| datadir.clone() + "/doc/" + package)),
+    );
+    ctx.insert(
+        "unitdir".to_owned(),
+        Json::String(env::var("UNIT_DIR").unwrap_or_else(|_| libdir.clone() + "/systemd/system")),
+    );
 
     ctx.insert("libdir".to_owned(), Json::String(libdir));
     ctx.insert("datadir".to_owned(), Json::String(datadir));
     ctx.insert("prefix".to_owned(), Json::String(prefix));
 
-    ctx.insert("statedir".to_owned(), Json::String(env::var("STATE_DIR").unwrap_or_else(|_| "/var/spool/cron".to_owned())));
+    ctx.insert(
+        "statedir".to_owned(),
+        Json::String(env::var("STATE_DIR").unwrap_or_else(|_| "/var/spool/cron".to_owned())),
+    );
 
-    ctx.insert("runparts".to_owned(), Json::String(env::var("RUN_PARTS").unwrap_or_else(|_| "/usr/bin/run-parts".to_owned())));
+    ctx.insert(
+        "runparts".to_owned(),
+        Json::String(env::var("RUN_PARTS").unwrap_or_else(|_| "/usr/bin/run-parts".to_owned())),
+    );
 
     ctx.insert("persistent".to_owned(), Json::Boolean(env::var("CARGO_FEATURE_PERSISTENT").is_ok()));
 
@@ -118,7 +153,8 @@ fn get_required_schedules() -> Vec<String> {
         ("CARGO_FEATURE_SCHED_SEMI_ANNUALLY", "semi-annually"),
     ];
 
-    features.iter()
+    features
+        .iter()
         .filter(|&&(e, _)| env::var(e).is_ok())
         .map(|&(_, f)| f.to_owned())
         .collect::<Vec<_>>()
