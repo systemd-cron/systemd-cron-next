@@ -8,6 +8,7 @@ name = "systemd-crontab-generator"
 readme = "README.md"
 repository = "https://github.com/systemd-cron/systemd-cron-next"
 version = "1.0.2"
+edition = "2018"
 
 [build-dependencies]
 handlebars = "0.12.0"
@@ -26,6 +27,7 @@ rustc-serialize = "0.3.20"
 tempfile = "1.1.3"
 time = "0.1.34"
 users = "0.5.1"
+nix = "0.17.0"
 
 [features]
 persistent = []
