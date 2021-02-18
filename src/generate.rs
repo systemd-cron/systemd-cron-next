@@ -19,7 +19,7 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
 
     info!("generating units for {}: \"{}\", {:?}", path.display(), entry, env);
 
-    let owner = try!(metadata(path)).uid();
+    let owner = (metadata(path)?).uid();
 
     let mut persistent = env.get("PERSISTENT")
                             .and_then(|v| {
@@ -146,10 +146,10 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
     if let Some(cmd) = entry.command() {
 
         // make sure we know the user
-        let user = try!(entry.user()
+        let user = (entry.user()
                              .and_then(get_entry_by_name)
                              .or_else(|| get_entry_by_uid(owner))
-                             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "unknown user")));
+                             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "unknown user")))?;
 
         // generate unique cron job id
         let mut md5ctx = ::md5::Context::new();
@@ -170,7 +170,7 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
 
         // make sure cron.target.wants dir exists
         let cron_target_wants_path = dstdir.join("cron.target.wants");
-        try!(create_dir_all(&cron_target_wants_path));
+        (create_dir_all(&cron_target_wants_path))?;
 
         // process command in case it should be put into script
         let command = if metadata(cmd).map(|m| m.is_file()).unwrap_or(false) {
@@ -180,22 +180,22 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
 
             debug!("generating script {:?} from {:?}", script_command_path, path);
             {
-                let mut script_command_file = try!(File::create(&script_command_path));
-                try!(writeln!(script_command_file, "#!{}", shell));
-                try!(writeln!(script_command_file, "{}", cmd));
+                let mut script_command_file = (File::create(&script_command_path))?;
+                (writeln!(script_command_file, "#!{}", shell))?;
+                (writeln!(script_command_file, "{}", cmd))?;
             }
 
-            let mut perms = try!(metadata(&script_command_path)).permissions();
+            let mut perms = (metadata(&script_command_path)?).permissions();
             perms.set_mode(0o755);
-            try!(set_permissions(&script_command_path, perms));
+            (set_permissions(&script_command_path, perms))?;
             script_command_path.to_str().unwrap().to_owned()
         };
 
         debug!("generating service {:?} from {:?}", service_unit_path, path);
         {
-            let mut service_unit_file = try!(File::create(service_unit_path));
+            let mut service_unit_file = (File::create(service_unit_path))?;
 
-            try!(writeln!(service_unit_file, r###"[Unit]
+            (writeln!(service_unit_file, r###"[Unit]
 Description=[Cron] "{entry}"
 Documentation=man:systemd-crontab-generator(8)
 RefuseManualStart=true
@@ -203,56 +203,56 @@ RefuseManualStop=true
 SourcePath={source_crontab_path}"###,
                 entry = entry,
                 source_crontab_path = path.display(),
-                ));
+                ))?;
 
             if env.contains_key("MAILTO") {
-                try!(writeln!(service_unit_file, "OnFailure=cron-failure@%i.service"));
+                (writeln!(service_unit_file, "OnFailure=cron-failure@%i.service"))?;
             }
 
             if user.uid != 0 {
-                try!(writeln!(service_unit_file, "Requires=systemd-user-sessions.service"));
+                (writeln!(service_unit_file, "Requires=systemd-user-sessions.service"))?;
                 if !user.dir.is_empty() {
-                    try!(writeln!(service_unit_file, "RequiresMountsFor={}", user.dir));
+                    (writeln!(service_unit_file, "RequiresMountsFor={}", user.dir))?;
                 }
             }
 
-            try!(writeln!(service_unit_file, r###"
+            (writeln!(service_unit_file, r###"
 [Service]
 Type=oneshot
 IgnoreSIGPIPE=false
 ExecStart={command}"###,
                 command = command,
-                ));
+                ))?;
 
             if schedule.is_some() && delay > 0 {
-                try!(writeln!(service_unit_file, "ExecStartPre=-{}/{}/boot-delay {}", LIB_DIR, PACKAGE, delay));
+                (writeln!(service_unit_file, "ExecStartPre=-{}/{}/boot-delay {}", LIB_DIR, PACKAGE, delay))?;
             }
 
             if user.uid != 0 {
-                try!(writeln!(service_unit_file, "User={}", user.name));
-                try!(writeln!(service_unit_file, "WorkingDirectory=~"));
+                (writeln!(service_unit_file, "User={}", user.name))?;
+                (writeln!(service_unit_file, "WorkingDirectory=~"))?;
             }
 
             if let Some(group) = entry.group() {
-                try!(writeln!(service_unit_file, "Group={}", group));
+                (writeln!(service_unit_file, "Group={}", group))?;
             }
             if batch {
-                try!(writeln!(service_unit_file, "CPUSchedulingPolicy=idle"));
-                try!(writeln!(service_unit_file, "IOSchedulingClass=idle"));
+                (writeln!(service_unit_file, "CPUSchedulingPolicy=idle"))?;
+                (writeln!(service_unit_file, "IOSchedulingClass=idle"))?;
             }
 
             if !env.is_empty() {
                 for (name, value) in env.iter() {
-                    try!(writeln!(service_unit_file, r#"Environment="{}={}""#, name, value));
+                    (writeln!(service_unit_file, r#"Environment="{}={}""#, name, value))?;
                 }
             }
         }
 
         debug!("generating timer {:?} from {:?}", timer_unit_path, path);
         {
-            let mut timer_unit_file = try!(File::create(&timer_unit_path));
+            let mut timer_unit_file = (File::create(&timer_unit_path))?;
 
-            try!(writeln!(timer_unit_file, r###"[Unit]
+            (writeln!(timer_unit_file, r###"[Unit]
 Description=[Timer] "{entry}"
 Documentation=man:systemd-crontab-generator(8)
 PartOf=cron.target
@@ -265,27 +265,27 @@ Unit={service_unit_name}"###,
                 entry = entry,
                 source_crontab_path = path.display(),
                 service_unit_name = service_unit_name,
-                ));
+                ))?;
 
             if cfg![feature = "persistent"] {
-                try!(writeln!(timer_unit_file, "Persistent={}", persistent));
+                (writeln!(timer_unit_file, "Persistent={}", persistent))?;
             }
 
             if let Some(schedule) = schedule {
-                try!(writeln!(timer_unit_file, "OnCalendar={}", schedule));
+                (writeln!(timer_unit_file, "OnCalendar={}", schedule))?;
             } else {
-                try!(writeln!(timer_unit_file, "OnBootSec={}m", delay));
+                (writeln!(timer_unit_file, "OnBootSec={}m", delay))?;
             }
 
             if random_delay != 1 {
                 if cfg!(feature="randomized-delay") {
-                    try!(writeln!(timer_unit_file, "RandomizedDelaySec={}m", random_delay));
+                    (writeln!(timer_unit_file, "RandomizedDelaySec={}m", random_delay))?;
                 } else {
-                    try!(writeln!(timer_unit_file, "AccuracySec={}m", random_delay));
+                    (writeln!(timer_unit_file, "AccuracySec={}m", random_delay))?;
                 }
             }
         }
-        try!(symlink(timer_unit_path, cron_target_wants_path.join(timer_unit_name)));
+        (symlink(timer_unit_path, cron_target_wants_path.join(timer_unit_name)))?;
     }
 
     Ok(())
@@ -312,8 +312,8 @@ fn tohex(input: &[u8]) -> String {
     #[inline]
     fn hex(d: u8) -> char {
         match d {
-            0...9 => (d + 0x30) as char,
-            10...15 => (d + 0x57) as char,
+            0..=9 => (d + 0x30) as char,
+            10..=15 => (d + 0x57) as char,
             _ => unreachable!("unexpected value: {}", d),
         }
     }

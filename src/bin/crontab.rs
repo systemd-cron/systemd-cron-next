@@ -305,7 +305,7 @@ fn main() {
 }
 
 fn check_crontab_syntax<P: AsRef<Path>>(path: P) -> Result<(), CrontabFileError> {
-    match try!(CrontabFile::<UserCrontabEntry>::new(path)).find(Result::is_err) {
+    match (CrontabFile::<UserCrontabEntry>::new(path)?).find(Result::is_err) {
         Some(Err(err)) => Err(err),
         _ => Ok(()),
     }
