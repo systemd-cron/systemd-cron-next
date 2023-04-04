@@ -1,10 +1,8 @@
+use std::env;
 use std::fs::File;
 use std::io::Read;
-use std::mem::transmute;
 use std::thread::sleep;
-use std::env;
 use std::time::Duration;
-
 
 fn main() {
     let delay = match env::args().nth(1).and_then(|s| s.parse::<f32>().ok()) {
@@ -20,9 +18,15 @@ fn main() {
         .and_then(|ref mut file| file.read(&mut buf))
         .map(|sz| {
             buf.iter()
-               .position(|&c| c == 0x20)
-               .and_then(|p| if p < sz { unsafe { transmute::<_, &str>(&buf[..p]) }.parse::<f32>().ok() } else { None })
-               .unwrap()
+                .position(|&c| c == 0x20)
+                .and_then(|p| {
+                    if p < sz {
+                        std::str::from_utf8(&buf[..p]).unwrap().parse::<f32>().ok()
+                    } else {
+                        None
+                    }
+                })
+                .unwrap()
         })
         .unwrap();
 
