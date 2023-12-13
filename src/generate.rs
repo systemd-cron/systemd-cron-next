@@ -57,6 +57,7 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
         .unwrap_or(0);
     let shell = env.get("SHELL").map(|v| &**v).unwrap_or("/bin/sh");
     let daemon_reload = metadata(REBOOT_FILE).map(|m| m.is_file()).unwrap_or(false);
+    let timezone = env.get("CRON_TZ").map(|v| &**v).unwrap_or("");
 
     let schedule = entry
         .period()
@@ -77,64 +78,64 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
                     if delay == 0 {
                         Some("hourly".to_owned())
                     } else {
-                        Some(format!("*-*-* *:{}:0", delay))
+                        Some(format!("*-*-* *:{}:0 {}", delay, timezone))
                     }
                 }
                 Period::Midnight => {
                     if delay == 0 {
                         Some("daily".to_owned())
                     } else {
-                        Some(format!("*-*-* 0:{}:0", delay))
+                        Some(format!("*-*-* 0:{}:0 {}", delay, timezone))
                     }
                 }
                 Period::Daily => {
                     if delay == 0 && hour == 0 {
                         Some("daily".to_owned())
                     } else {
-                        Some(format!("*-*-* {}:{}:0", hour, delay))
+                        Some(format!("*-*-* {}:{}:0 {}", hour, delay, timezone))
                     }
                 }
                 Period::Weekly => {
                     if delay == 0 && hour == 0 {
                         Some("weekly".to_owned())
                     } else {
-                        Some(format!("Mon *-*-* {}:{}:0", hour, delay))
+                        Some(format!("Mon *-*-* {}:{}:0 {}", hour, delay, timezone))
                     }
                 }
                 Period::Monthly => {
                     if delay == 0 && hour == 0 {
                         Some("monthly".to_owned())
                     } else {
-                        Some(format!("*-*-1 {}:{}:0", hour, delay))
+                        Some(format!("*-*-1 {}:{}:0 {}", hour, delay, timezone))
                     }
                 }
                 Period::Quaterly => {
                     if delay == 0 && hour == 0 {
                         Some("quaterly".to_owned())
                     } else {
-                        Some(format!("*-1,4,7,10-1 {}:{}:0", hour, delay))
+                        Some(format!("*-1,4,7,10-1 {}:{}:0 {}", hour, delay, timezone))
                     }
                 }
                 Period::Biannually => {
                     if delay == 0 && hour == 0 {
                         Some("semiannually".to_owned())
                     } else {
-                        Some(format!("*-1,7-1 {}:{}:0", hour, delay))
+                        Some(format!("*-1,7-1 {}:{}:0 {}", hour, delay, timezone))
                     }
                 }
                 Period::Yearly => {
                     if delay == 0 && hour == 0 {
                         Some("yearly".to_owned())
                     } else {
-                        Some(format!("*-1-1 {}:{}:0", hour, delay))
+                        Some(format!("*-1-1 {}:{}:0 {}", hour, delay, timezone))
                     }
                 }
                 Period::Days(days) => {
                     // workaround for anacrontab
                     if days > 31 {
-                        Some(format!("*-1/{}-1 {}:{}:0", days / 30, hour, delay))
+                        Some(format!("*-1/{}-1 {}:{}:0 {}", days / 30, hour, delay, timezone))
                     } else {
-                        Some(format!("*-*-1/{} {}:{}:0", days, hour, delay))
+                        Some(format!("*-*-1/{} {}:{}:0 {}", days, hour, delay, timezone))
                     }
                 }
             }
@@ -150,12 +151,13 @@ pub fn generate_systemd_units(entry: CrontabEntry, env: &BTreeMap<String, String
                 } = *cal;
 
                 Some(format!(
-                    "{} *-{}-{} {}:{}:00",
+                    "{} *-{}-{} {}:{}:00 {}",
                     linearize(&**dows, "", ToString::to_string),
                     linearize(&**mons, "*", |&mon| (mon as u8).to_string()),
                     linearize(&**days, "*", ToString::to_string),
                     linearize(&**hrs, "*", ToString::to_string),
-                    linearize(&**mins, "*", ToString::to_string)
+                    linearize(&**mins, "*", ToString::to_string),
+                    timezone,
                 ))
             })
         });
