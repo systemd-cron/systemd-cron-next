@@ -27,7 +27,7 @@ static ANACRONTAB_FILE: &str = "/etc/anacrontab"; // AnacrontabEntry
 static REBOOT_FILE: &str = "/run/crond.reboot";
 
 fn main() -> Result<(), Error> {
-    log::set_logger(|filter| kernlog::KernelLog::init_level(log::LevelFilter::Error, filter)).unwrap();
+    kernlog::init().unwrap();
 
     let dest_dir = match env::args().nth(1) {
         None => {
